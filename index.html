@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>背包排列优化工具</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --text:#1f2937; --muted:#6b7280;
+    --line:#d1d5db; --accent:#2563eb; --accent2:#eff6ff;
+    --bad:#fee2e2; --good:#dcfce7; --cell:34px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",Arial,sans-serif}
+  header{padding:20px 24px;background:#111827;color:white}
+  header h1{margin:0 0 6px;font-size:22px;font-weight:700}
+  header p{margin:0;color:#d1d5db}
+  main{display:grid;grid-template-columns:520px 1fr;gap:16px;padding:16px;max-width:1640px;margin:0 auto}
+  .card{background:var(--panel);border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.04);padding:14px;margin-bottom:14px;overflow-x:auto}
+  h2{font-size:16px;margin:0 0 12px;border-left:4px solid var(--accent);padding-left:8px}
+  h3{font-size:14px;margin:12px 0 8px;color:#374151}
+  label{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 4px 0;color:#374151}
+  input[type="number"], input[type="text"], textarea, select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:white;color:var(--text)}
+  input[type="number"]{width:82px}
+  input.name-input{width:128px}
+  input.priority-input{width:72px}
+  textarea{width:100%;min-height:82px;font-family:ui-monospace,Consolas,monospace;resize:vertical}
+  button{border:1px solid #cbd5e1;background:white;color:#111827;border-radius:9px;padding:7px 10px;cursor:pointer;margin:3px 4px 3px 0}
+  button:hover{background:#f3f4f6}
+  button.primary{background:var(--accent);border-color:var(--accent);color:white;font-weight:600}
+  button.primary:hover{filter:brightness(.95)}
+  button.danger{border-color:#fecaca;color:#b91c1c;background:#fff7f7}
+  button.compact{padding:5px 8px;font-size:12px}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+  .grid{display:grid;gap:0;border:1px solid #111827;width:max-content;background:#111827}
+  .cell{width:var(--cell);height:var(--cell);border:1px solid #111827;background:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;user-select:none;position:relative}
+  .cell.inactive{background:#e5e7eb;color:#9ca3af}
+  #spaceGrid .cell{cursor:pointer}
+  #spaceGrid .cell:hover{outline:2px solid var(--accent);z-index:2}
+  .mini{display:grid;gap:0;border:1px solid #374151;background:#374151;width:max-content;transform-origin:left top}
+  .mini .mcell{width:14px;height:14px;background:white;border:1px solid #374151}
+  .mini .mcell.fill{background:#111827}
+  table{width:100%;border-collapse:collapse;margin-top:8px;min-width:520px}
+  th,td{border-bottom:1px solid #e5e7eb;padding:6px;text-align:left;vertical-align:middle}
+  th{font-size:12px;color:#4b5563;background:#f9fafb;white-space:nowrap}
+  .shape-name{font-weight:600}
+  .output-wrap{display:grid;grid-template-columns:1fr 390px;gap:16px;align-items:start}
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:8px}
+  .stat b{display:block;font-size:18px;margin-top:2px;word-break:break-all}
+  .legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border:1px solid #e5e7eb;border-radius:999px;background:#f9fafb;font-size:12px}
+  .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:12px;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;white-space:nowrap}
+  .pill.gray{border-color:#e5e7eb;background:#f9fafb;color:#6b7280}
+  .pill.green{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+  .sw{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.2)}
+  pre{white-space:pre-wrap;background:#0b1020;color:#e5e7eb;border-radius:10px;padding:10px;max-height:380px;overflow:auto}
+  .empty{color:#6b7280;text-align:center;padding:16px;background:#f9fafb;border-radius:8px}
+  @media (max-width:1100px){main{grid-template-columns:1fr}.output-wrap{grid-template-columns:1fr}.card{overflow-x:auto}}
+</style>
+</head>
+<body>
+<header>
+  <h1>背包排列优化工具</h1>
+  <p>优先充分利用背包空间，再让高品质、大体积且具有自身加成的物品获得更多不同邻居；支持单格给相邻物品加成，以及单个红色三格物品的自身加成开关。</p>
+</header>
+<main>
+  <section>
+    <div class="card">
+      <h2>1. 当前背包空间</h2>
+      <div class="row">
+        <label>宽度 <input id="gridW" type="number" min="1" max="7" value="7"></label>
+        <label>高度 <input id="gridH" type="number" min="1" max="6" value="6"></label>
+        <button id="resizeBtn">应用尺寸</button>
+        <button id="fullBtn">全选空间</button>
+        <button id="clearSpaceBtn">清空空间</button>
+      </div>
+      <div class="hint">点击格子可切换“已解锁/未解锁”。最大支持 7×6。灰色格子不会参与计算。</div>
+      <div id="spaceGrid" class="grid" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>2. 物品库</h2>
+      <div class="row">
+        <label><input id="allowRotate" type="checkbox" checked> 允许旋转</label>
+        <label><input id="allowMirror" type="checkbox"> 允许镜像</label>
+        <button id="resetItemsBtn">恢复默认物品库</button>
+      </div>
+      <div class="hint">物品库提供形状与默认参数。添加到已有物品清单后，每个实际物品仍可单独改品质、基础属性、加成率和三格受加成开关。基础属性会按物品格数与品质自动给默认值。</div>
+      <table id="itemsTable">
+        <thead><tr><th>启用</th><th>物品</th><th>形状</th><th>品质</th><th>默认属性</th><th>加成率%</th><th>添加数量</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <h3>添加自定义物品到物品库</h3>
+      <label>名称 <input id="customName" type="text" placeholder="例如：六格-Z型"></label>
+      <label>品质 <select id="customQuality"></select></label>
+      <label>基础属性 <input id="customValue" type="number" min="0" step="1" value="2"></label>
+      <label>加成率% <input id="customBonusRate" type="number" min="0" step="1" value="0"></label>
+      <textarea id="customPattern" placeholder="用 # 表示占用格，用 . 表示空格。例如：\n##.\n.##"></textarea>
+      <button id="addCustomBtn">添加到物品库</button>
+      <div class="hint">加成率含义取决于物品类型：单格为“给相邻物品提供的百分比”；绿/蓝/紫/金四格、红色五格以及开启受加成的红色三格，为“每相邻一个不同物品给自身增加的百分比”。红色四格没有自身邻接加成。</div>
+    </div>
+
+    <div class="card">
+      <h2>3. 已有物品清单</h2>
+      <div class="row">
+        <button id="renumberBtn">重新编号</button>
+        <button id="clearInventoryBtn" class="danger">清空清单</button>
+      </div>
+      <div class="hint">每个条目代表一个实际拥有的物品。三格物品是否“自身因相邻受加成”在这里逐个开关。还可填写“邻接优先级”：1 为最高，数字越小越优先；留空则按默认规则计算。</div>
+      <table id="inventoryTable">
+        <thead><tr><th>编号</th><th>名称</th><th>形状</th><th>品质</th><th>基础属性</th><th>加成属性</th><th>加成率%</th><th>邻接优先级</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2>4. 求解设置</h2>
+      <div class="row">
+        <label>最大搜索节点 <input id="nodeLimit" type="number" min="1000" step="1000" value="2500000"></label>
+        <label>最长搜索时间(ms) <input id="timeLimit" type="number" min="100" step="100" value="20000"></label>
+      </div>
+      <div class="row">
+        <label><input id="useAdjacencyBonus" type="checkbox" checked> 启用百分比相邻加成</label>
+      </div>
+      <div class="row">
+        <button id="solveBtn" class="primary">计算最优摆放解</button>
+        <button id="cancelSolveBtn" class="danger" disabled>停止计算</button>
+        <button id="exportBtn">导出结果 JSON</button>
+        <button id="saveBtn">保存当前配置</button>
+        <button id="loadBtn">读取配置</button>
+      </div>
+      <div class="hint">采用“两阶段求解”：当物品总占格不超过可用空间时，先单独寻找“全部物品都能放入”的可行解；一旦找到，后续只在完整装入方案中优化邻接，不会再返回漏件方案。若物品总面积超过空间，才搜索最大空间利用方案。手动优先级覆盖默认规则；未设置物品按红色五格 ＞ 金色四格 ＞ 开启自身加成的红色三格 ＞ 紫/蓝/绿色四格计算。后台线程运行，可随时停止。</div>
+    </div>
+
+    <div class="card">
+      <h2>5. 摆放结果</h2>
+      <div class="output-wrap">
+        <div>
+          <div id="resultGrid" class="grid"></div>
+          <div id="legend" class="legend"></div>
+        </div>
+        <div>
+          <div class="stats">
+            <div class="stat">总评分<b id="statScore">-</b></div>
+            <div class="stat">基础属性<b id="statBase">-</b></div>
+            <div class="stat">百分比加成<b id="statBonus">-</b></div>
+            <div class="stat">重点物品邻接<b id="statPriority">-</b></div>
+            <div class="stat">已用格子<b id="statArea">-</b></div>
+            <div class="stat">已放物品<b id="statItems">-</b></div>
+            <div class="stat">搜索节点<b id="statNodes">-</b></div>
+          </div>
+          <h3>状态</h3>
+          <pre id="statusBox">尚未计算。</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>6. 使用说明</h2>
+      <ol>
+        <li>先设置背包宽度、高度，并点击空间格子标记已解锁区域。</li>
+        <li>从物品库添加物品到已有物品清单；真正参与计算的是已有物品清单。</li>
+        <li>在已有物品清单中逐个修改品质、基础属性、加成率；三格物品可逐个勾选“自身受加成”。</li>
+        <li>需要指定某件物品优先获得更多邻居时，在“邻接优先级”中填写数字：1 最高，数字越小越优先；留空使用默认规则。</li>
+        <li>单格物品的加成率表示：它会给每个相邻物品提供“该相邻物品基础属性 × 单格加成率”的加成。</li>
+        <li>绿、蓝、紫、金品质的四格物品以及红色五格物品：每相邻一个不同物品，就给自身增加“自身基础属性 × 加成率”的加成；红色四格物品没有这项自身邻接加成。</li>
+        <li>开启“自身受加成”的红色三格物品按自身邻接规则计算；未开启的三格物品不因相邻物品给自身加成。</li>
+      </ol>
+      <p class="hint">品质基础属性按物品格数区分：单格 2/4/8/16（无红），两格 3/6/12/24（无红），三格 4/8/16/32/32，四格 5/10/20/40/56，五格仅红色 64。重点邻接按“相邻的不同物品数量”计算，同一物品即使接触多条边也只计一次。自身邻接优先级为红色五格、金色四格、开启自身加成的红色三格、紫/蓝/绿色四格。红色四格虽然基础值较高，但没有自身邻接加成，不会为了增加其普通邻居数量而占用重点位置。</p>
+    </div>
+  </section>
+</main>
+<script>
+'use strict';
+
+const COLORS = ['#93c5fd','#86efac','#fca5a5','#fdba74','#c4b5fd','#67e8f9','#f9a8d4','#fde68a','#bef264','#d8b4fe','#a7f3d0','#f0abfc','#bfdbfe','#fecaca','#bbf7d0','#ddd6fe','#bae6fd','#bbf7d0','#fed7aa','#e9d5ff'];
+const QUALITY_OPTIONS = [
+  {id:'green', name:'绿'},
+  {id:'blue', name:'蓝'},
+  {id:'purple', name:'紫'},
+  {id:'gold', name:'金'},
+  {id:'red', name:'红'}
+];
+const QUALITY_MAP = Object.fromEntries(QUALITY_OPTIONS.map(q=>[q.id,q]));
+const AREA_VALUE_BY_QUALITY = {
+  1:{green:2, blue:4, purple:8, gold:16},
+  2:{green:3, blue:6, purple:12, gold:24},
+  3:{green:4, blue:8, purple:16, gold:32, red:32},
+  4:{green:5, blue:10, purple:20, gold:40, red:56},
+  5:{red:64}
+};
+const SINGLE_RATE_BY_QUALITY = {green:5, blue:8, purple:12, gold:16};
+// 自身受加成物品的邻接优先级。索引越小，比较优先级越高。
+// 用户给出的核心顺序：红色五格最高；金色四格 > 红色三格 > 紫色及以下四格。
+// 红色四格没有自身邻接加成，因此不进入自身邻接优先级。
+const SELF_PRIORITY_TIERS = [
+  {id:'five_red', label:'红色五格'},
+  {id:'four_gold', label:'金色四格'},
+  {id:'three_red', label:'红色三格（自身加成开启）'},
+  {id:'four_purple', label:'紫色四格'},
+  {id:'four_blue', label:'蓝色四格'},
+  {id:'four_green', label:'绿色四格'}
+];
+const PRIORITY_SEARCH_WEIGHT = [1000000, 100000, 10000, 1000, 100, 10];
+let W = 7, H = 6;
+let active = [];
+let itemDefs = [];
+let inventory = [];
+let nextItemNo = 1;
+let lastResult = null;
+let solverWorker = null;
+
+const DEFAULT_ITEMS = [
+  {id:'one-1', name:'单格', cells:[[0,0]], quality:'green', enabled:true},
+  {id:'two-v', name:'双格-竖条', cells:[[0,0],[1,0]], quality:'green', enabled:true},
+  {id:'two-h', name:'双格-横条', cells:[[0,0],[0,1]], quality:'green', enabled:true},
+  {id:'three-i', name:'三格-I型', cells:[[0,0],[1,0],[2,0]], quality:'blue', threeSelfBonus:false, enabled:true},
+  {id:'three-l-a', name:'三格-L型A', cells:[[0,1],[1,0],[1,1]], quality:'blue', threeSelfBonus:false, enabled:true},
+  {id:'three-l-b', name:'三格-L型B', cells:[[0,0],[0,1],[1,0]], quality:'blue', threeSelfBonus:false, enabled:true},
+  {id:'four-o', name:'四格-方块', cells:[[0,0],[0,1],[1,0],[1,1]], quality:'purple', enabled:true},
+  {id:'four-l', name:'四格-L型', cells:[[0,0],[1,0],[2,0],[0,1]], quality:'purple', enabled:true},
+  {id:'four-j', name:'四格-J型', cells:[[0,1],[1,1],[2,1],[2,0]], quality:'purple', enabled:true},
+  {id:'four-i', name:'四格-I型', cells:[[0,0],[1,0],[2,0],[3,0]], quality:'purple', enabled:true},
+  {id:'five-p', name:'五格-P型', cells:[[0,0],[0,1],[1,0],[1,1],[2,0]], quality:'red', enabled:true},
+  {id:'five-hl', name:'五格-厚L型', cells:[[0,1],[1,0],[1,1],[2,0],[2,1]], quality:'red', enabled:true},
+  {id:'five-j', name:'五格-J型', cells:[[0,1],[1,1],[2,1],[3,1],[3,0]], quality:'red', enabled:true},
+  {id:'five-l', name:'五格-长L型', cells:[[0,0],[1,0],[2,0],[3,0],[0,1]], quality:'red', enabled:true}
+];
+
+function cloneCells(cells){ return cells.map(c=>[c[0],c[1]]); }
+function cloneItems(src){ return src.map(x => normalizeItemRecord({...x, cells:cloneCells(x.cells), enabled:x.enabled !== false})); }
+function allowedQualitiesForArea(area){
+  if(area === 1 || area === 2) return ['green','blue','purple','gold'];
+  if(area === 3 || area === 4) return ['green','blue','purple','gold','red'];
+  if(area === 5) return ['red'];
+  return ['green','blue','purple','gold','red'];
+}
+function normalizeQualityForArea(q, area){
+  const allowed = allowedQualitiesForArea(area);
+  return allowed.includes(q) ? q : allowed[0];
+}
+function qualityValue(q, area=1){
+  const a = Number(area) || 1;
+  const table = AREA_VALUE_BY_QUALITY[a] || AREA_VALUE_BY_QUALITY[1];
+  const qq = normalizeQualityForArea(q, a);
+  return table[qq] ?? Object.values(table)[0] ?? 0;
+}
+function qualityName(q){ return (QUALITY_MAP[q] || QUALITY_MAP.green).name; }
+function qualityLabel(q, area){ return `${qualityName(q)}(${qualityValue(q, area)})`; }
+function defaultBonusRate(area, quality, threeSelfBonus){
+  const q = normalizeQualityForArea(quality, area);
+  if(area === 1) return SINGLE_RATE_BY_QUALITY[q] ?? 0;
+  if(area === 5) return 40;
+  if(area === 4) return q === 'red' ? 0 : (q === 'gold' ? 40 : 20);
+  if(area === 3 && threeSelfBonus) return 20;
+  return 0;
+}
+function normalizeItemRecord(item, keepManualRate=false){
+  const area = item.cells ? item.cells.length : 0;
+  let threeSelfBonus = !!item.threeSelfBonus;
+  let quality = normalizeQualityForArea(item.quality || 'green', area);
+  if(area === 5) quality = 'red';
+  if(area === 3 && threeSelfBonus) quality = 'red';
+  let value = Number(item.value);
+  if(!Number.isFinite(value) || value <= 0) value = qualityValue(quality, area);
+  if(area === 5) value = 64;
+  if(area === 3 && threeSelfBonus) value = 32;
+  let customPriority = item.customPriority;
+  if(customPriority === '' || customPriority === null || customPriority === undefined || !Number.isFinite(Number(customPriority))){
+    customPriority = null;
+  }else{
+    customPriority = Math.max(1, Math.min(99, Math.floor(Number(customPriority))));
+  }
+  let bonusRate = Number(item.bonusRate);
+  if(!keepManualRate || !Number.isFinite(bonusRate) || bonusRate < 0) bonusRate = defaultBonusRate(area, quality, threeSelfBonus);
+  if(area === 5) bonusRate = 40;
+  if(area === 3 && threeSelfBonus) bonusRate = 20;
+  if(area === 4 && quality === 'red') bonusRate = 0;
+  if(area !== 1 && area !== 4 && area !== 5 && !(area === 3 && threeSelfBonus)) bonusRate = 0;
+  return {...item, cells:normalizeCells(item.cells || []), quality, value, bonusRate, threeSelfBonus, customPriority, enabled:item.enabled !== false};
+}
+function init(){
+  active = Array.from({length:6},()=>Array(7).fill(true));
+  itemDefs = cloneItems(DEFAULT_ITEMS);
+  bindEvents();
+  renderQualitySelect(document.getElementById('customQuality'), 'green', false, 1);
+  renderSpaceGrid();
+  renderItemsTable();
+  renderInventoryTable();
+  renderResultGrid(null);
+}
+
+function bindEvents(){
+  document.getElementById('resizeBtn').addEventListener('click', applySize);
+  document.getElementById('fullBtn').addEventListener('click', ()=>{ for(let r=0;r<H;r++) for(let c=0;c<W;c++) active[r][c]=true; renderSpaceGrid(); renderResultGrid(null); });
+  document.getElementById('clearSpaceBtn').addEventListener('click', ()=>{ for(let r=0;r<H;r++) for(let c=0;c<W;c++) active[r][c]=false; renderSpaceGrid(); renderResultGrid(null); });
+  document.getElementById('resetItemsBtn').addEventListener('click', ()=>{ itemDefs = cloneItems(DEFAULT_ITEMS); renderItemsTable(); });
+  document.getElementById('addCustomBtn').addEventListener('click', addCustomItem);
+  document.getElementById('renumberBtn').addEventListener('click', renumberInventory);
+  document.getElementById('clearInventoryBtn').addEventListener('click', ()=>{ if(confirm('确定清空已有物品清单？')){ inventory = []; nextItemNo = 1; renderInventoryTable(); renderResultGrid(null); } });
+  document.getElementById('solveBtn').addEventListener('click', solveAndRender);
+  document.getElementById('cancelSolveBtn').addEventListener('click', cancelSolve);
+  document.getElementById('exportBtn').addEventListener('click', exportResult);
+  document.getElementById('saveBtn').addEventListener('click', saveConfig);
+  document.getElementById('loadBtn').addEventListener('click', loadConfig);
+  document.getElementById('useAdjacencyBonus').addEventListener('change', ()=>{ renderResultGrid(null); });
+  document.getElementById('customQuality').addEventListener('change', e=>{
+    const q = e.target.value;
+    const cells = parsePattern(document.getElementById('customPattern').value || '#');
+    const area = cells.length || 1;
+    document.getElementById('customValue').value = qualityValue(q, area);
+    document.getElementById('customBonusRate').value = defaultBonusRate(area, q, false);
+  });
+}
+
+function renderQualitySelect(sel, selected, disabled=false, area=1){
+  const allowed = allowedQualitiesForArea(area);
+  const q = normalizeQualityForArea(selected, area);
+  sel.innerHTML = allowed.map(id=>`<option value="${id}" ${id===q?'selected':''}>${qualityLabel(id, area)}</option>`).join('');
+  sel.disabled = disabled;
+}
+function qualitySelectHtml(idx, value, scope, disabled=false, area=1){
+  const allowed = allowedQualitiesForArea(area);
+  const q = normalizeQualityForArea(value, area);
+  const opts = allowed.map(id=>`<option value="${id}" ${id===q?'selected':''}>${qualityLabel(id, area)}</option>`).join('');
+  return `<select data-${scope}-k="quality" data-i="${idx}" ${disabled?'disabled':''}>${opts}</select>`;
+}
+
+function applySize(){
+  const newW = Math.max(1, Math.min(7, Number(document.getElementById('gridW').value)||7));
+  const newH = Math.max(1, Math.min(6, Number(document.getElementById('gridH').value)||6));
+  document.getElementById('gridW').value = newW;
+  document.getElementById('gridH').value = newH;
+  const old = active;
+  W = newW; H = newH;
+  active = Array.from({length:H}, (_,r)=>Array.from({length:W},(_,c)=> old[r] && old[r][c] !== undefined ? old[r][c] : true));
+  renderSpaceGrid(); renderResultGrid(null);
+}
+
+function renderSpaceGrid(){
+  const el = document.getElementById('spaceGrid');
+  el.style.gridTemplateColumns = `repeat(${W}, var(--cell))`;
+  el.innerHTML = '';
+  for(let r=0;r<H;r++){
+    for(let c=0;c<W;c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (active[r][c] ? '' : ' inactive');
+      cell.textContent = active[r][c] ? '' : '×';
+      cell.title = `行 ${r+1}, 列 ${c+1}`;
+      cell.addEventListener('click', ()=>{ active[r][c] = !active[r][c]; renderSpaceGrid(); renderResultGrid(null); });
+      el.appendChild(cell);
+    }
+  }
+}
+
+function renderItemsTable(){
+  const tbody = document.querySelector('#itemsTable tbody');
+  tbody.innerHTML = '';
+  itemDefs = itemDefs.map(x=>normalizeItemRecord(x, true));
+  itemDefs.forEach((it, idx)=>{
+    const area = it.cells.length;
+    const tr = document.createElement('tr');
+    const locked = area === 5 || (area === 3 && it.threeSelfBonus);
+    tr.innerHTML = `
+      <td><input type="checkbox" data-lib-k="enabled" data-i="${idx}" ${it.enabled!==false?'checked':''}></td>
+      <td><span class="shape-name">${escapeHtml(it.name)}</span><div class="hint">${area} 格</div></td>
+      <td></td>
+      <td>${qualitySelectHtml(idx, it.quality, 'lib', locked, area)}</td>
+      <td><input type="number" data-lib-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}" ${locked?'disabled':''}></td>
+      <td><input type="number" data-lib-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${locked || bonusKind(it)==='none'?'disabled':''}></td>
+      <td><input type="number" data-add-count="${idx}" min="1" step="1" value="1"></td>
+      <td><button class="compact" data-add="${idx}" ${it.enabled===false?'disabled':''}>添加</button></td>`;
+    tr.children[2].appendChild(makeMiniPreview(it.cells));
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('input[data-lib-k], select[data-lib-k]').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const i = Number(e.target.dataset.i), k = e.target.dataset.libK;
+      if(!itemDefs[i]) return;
+      if(k==='enabled') itemDefs[i].enabled = e.target.checked;
+      if(k==='quality'){
+        itemDefs[i].quality = e.target.value;
+        itemDefs[i].value = qualityValue(e.target.value, itemDefs[i].cells.length);
+        itemDefs[i].bonusRate = defaultBonusRate(itemDefs[i].cells.length, e.target.value, itemDefs[i].threeSelfBonus);
+      }
+      if(k==='value') itemDefs[i].value = Math.max(0, Number(e.target.value)||0);
+      if(k==='bonusRate') itemDefs[i].bonusRate = Math.max(0, Number(e.target.value)||0);
+      itemDefs[i] = normalizeItemRecord(itemDefs[i], true);
+      renderItemsTable();
+    });
+  });
+  tbody.querySelectorAll('button[data-add]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = Number(e.currentTarget.dataset.add);
+      const countInput = tbody.querySelector(`input[data-add-count="${i}"]`);
+      const count = Math.max(1, Math.floor(Number(countInput.value)||1));
+      addToInventory(i, count);
+    });
+  });
+}
+
+function renderInventoryTable(){
+  const tbody = document.querySelector('#inventoryTable tbody');
+  tbody.innerHTML = '';
+  inventory = inventory.map(x=>normalizeItemRecord(x, true));
+  if(inventory.length === 0){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="9"><div class="empty">暂无已有物品。请先从物品库点击“添加”。</div></td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+  inventory.forEach((it, idx)=>{
+    const area = it.cells.length;
+    const locked = area === 5 || (area === 3 && it.threeSelfBonus);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>#${it.no}</b></td>
+      <td><input class="name-input" type="text" data-inv-k="name" data-i="${idx}" value="${escapeAttr(it.name)}"></td>
+      <td></td>
+      <td>${qualitySelectHtml(idx, it.quality, 'inv', locked, area)}</td>
+      <td><input type="number" data-inv-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}" ${locked?'disabled':''}></td>
+      <td>${bonusControlHtml(it, idx)}</td>
+      <td><input type="number" data-inv-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${locked || bonusKind(it)==='none'?'disabled':''}></td>
+      <td><input class="priority-input" type="number" data-inv-k="customPriority" data-i="${idx}" min="1" max="99" step="1" value="${it.customPriority ?? ''}" placeholder="默认" title="1 为最高，数字越小越优先；留空使用默认规则"></td>
+      <td><button class="danger compact" data-del-inv="${idx}">删除</button></td>`;
+    tr.children[2].appendChild(makeMiniPreview(it.cells));
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('input[data-inv-k], select[data-inv-k]').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const i = Number(e.target.dataset.i), k = e.target.dataset.invK;
+      if(!inventory[i]) return;
+      if(k==='name') inventory[i].name = e.target.value.trim() || inventory[i].name;
+      if(k==='quality'){
+        inventory[i].quality = e.target.value;
+        inventory[i].value = qualityValue(e.target.value, inventory[i].cells.length);
+        inventory[i].bonusRate = defaultBonusRate(inventory[i].cells.length, e.target.value, inventory[i].threeSelfBonus);
+      }
+      if(k==='value') inventory[i].value = Math.max(0, Number(e.target.value)||0);
+      if(k==='bonusRate') inventory[i].bonusRate = Math.max(0, Number(e.target.value)||0);
+      if(k==='customPriority'){
+        const raw = String(e.target.value || '').trim();
+        inventory[i].customPriority = raw === '' ? null : Math.max(1, Math.min(99, Math.floor(Number(raw)||1)));
+      }
+      if(k==='threeSelfBonus'){
+        inventory[i].threeSelfBonus = e.target.checked;
+        if(e.target.checked){
+          inventory[i].quality = 'red';
+          inventory[i].value = 32;
+          inventory[i].bonusRate = 20;
+        }else{
+          inventory[i].bonusRate = 0;
+        }
+      }
+      inventory[i] = normalizeItemRecord(inventory[i], true);
+      renderInventoryTable();
+      renderResultGrid(null);
+    });
+  });
+  tbody.querySelectorAll('button[data-del-inv]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const i = Number(e.currentTarget.dataset.delInv);
+      inventory.splice(i,1);
+      renderInventoryTable();
+      renderResultGrid(null);
+    });
+  });
+}
+
+function bonusKind(it){
+  const area = Number(it && it.area) || (it && it.cells ? it.cells.length : 0);
+  const quality = (it && it.quality) || 'green';
+  // 固定规则优先于旧配置中可能残留的 bonusKind，确保红色四格永远没有自身邻接加成。
+  if(area === 4 && quality === 'red') return 'none';
+  if(area === 1) return 'provider';
+  if((area === 4 && quality !== 'red') || area === 5 || (area === 3 && it.threeSelfBonus)) return 'self';
+  return 'none';
+}
+function bonusControlHtml(it, idx){
+  const area = it.cells.length;
+  if(area === 1) return '<span class="pill green">单格：给相邻物品</span>';
+  if(area === 4 && it.quality === 'red') return '<span class="pill gray">红色四格：无自身邻接加成</span>';
+  if(area === 4) return '<span class="pill">四格：自身受加成</span>';
+  if(area === 5) return '<span class="pill">五格：红色自身受加成</span>';
+  if(area === 3) return `<label style="margin:0"><input type="checkbox" data-inv-k="threeSelfBonus" data-i="${idx}" ${it.threeSelfBonus?'checked':''}> 自身受加成</label>`;
+  return '<span class="pill gray">无</span>';
+}
+function bonusDescription(it){
+  const kind = bonusKind(it);
+  if(kind === 'provider') return `单格提供：相邻目标 × ${formatNum(it.bonusRate)}%`;
+  if(kind === 'self') return `自身受加成：自身 × ${formatNum(it.bonusRate)}% / 相邻物品`;
+  return '无加成属性';
+}
+
+function selfPriorityTier(it){
+  const area = Number(it.area ?? (it.cells ? it.cells.length : 0));
+  const quality = it.quality || 'green';
+  const kind = it.bonusKind || bonusKind(it);
+  if(kind !== 'self') return -1;
+  if(area === 5 && quality === 'red') return 0;
+  if(area === 4 && quality === 'gold') return 1;
+  if(area === 3 && quality === 'red') return 2;
+  if(area === 4 && quality === 'purple') return 3;
+  if(area === 4 && quality === 'blue') return 4;
+  if(area === 4 && quality === 'green') return 5;
+  return -1;
+}
+function emptyPriorityVector(){ return Array(SELF_PRIORITY_TIERS.length).fill(0); }
+function addPriorityVectors(a,b){ return a.map((v,i)=>v+(b[i]||0)); }
+function comparePriorityVectors(a,b){
+  for(let i=0;i<SELF_PRIORITY_TIERS.length;i++){
+    const d = (a[i]||0) - (b[i]||0);
+    if(d !== 0) return d;
+  }
+  return 0;
+}
+function weightedPriority(v){ return v.reduce((sum,x,i)=>sum+(x||0)*PRIORITY_SEARCH_WEIGHT[i],0); }
+function priorityGainFor(newPlacement, existingPlacements){
+  const vector = emptyPriorityVector();
+  const links = [];
+  for(const old of existingPlacements){
+    if(!areAdjacent(newPlacement.cells, old.cells)) continue;
+    if(newPlacement.priorityTier >= 0){
+      vector[newPlacement.priorityTier]++;
+      links.push({target:newPlacement.no, targetName:newPlacement.itemName, neighbor:old.no, neighborName:old.itemName, tier:newPlacement.priorityTier});
+    }
+    if(old.priorityTier >= 0){
+      vector[old.priorityTier]++;
+      links.push({target:old.no, targetName:old.itemName, neighbor:newPlacement.no, neighborName:newPlacement.itemName, tier:old.priorityTier});
+    }
+  }
+  return {vector, links, weighted:weightedPriority(vector)};
+}
+
+function addToInventory(defIndex, count){
+  const def = normalizeItemRecord(itemDefs[defIndex], true);
+  if(!def || def.enabled === false) return;
+  for(let k=0;k<count;k++){
+    inventory.push(normalizeItemRecord({
+      uid:'inv-' + Date.now() + '-' + Math.random().toString(16).slice(2),
+      no: nextItemNo++,
+      typeId: def.id,
+      typeName: def.name,
+      name: def.name,
+      cells: cloneCells(def.cells),
+      quality: def.quality,
+      value: def.value,
+      bonusRate: def.bonusRate,
+      threeSelfBonus: !!def.threeSelfBonus,
+      customPriority: null
+    }, true));
+  }
+  renderInventoryTable();
+  renderResultGrid(null);
+}
+
+function renumberInventory(){
+  inventory.forEach((it, idx)=>{ it.no = idx + 1; });
+  nextItemNo = inventory.length + 1;
+  renderInventoryTable();
+  renderResultGrid(null);
+}
+
+function makeMiniPreview(cells){
+  const norm = normalizeCells(cells);
+  const maxR = Math.max(...norm.map(x=>x[0])), maxC = Math.max(...norm.map(x=>x[1]));
+  const root = document.createElement('div');
+  root.className = 'mini';
+  root.style.gridTemplateColumns = `repeat(${maxC+1}, 14px)`;
+  const set = new Set(norm.map(x=>x.join(',')));
+  for(let r=0;r<=maxR;r++) for(let c=0;c<=maxC;c++){
+    const d = document.createElement('div');
+    d.className = 'mcell' + (set.has(`${r},${c}`)?' fill':'');
+    root.appendChild(d);
+  }
+  return root;
+}
+
+function addCustomItem(){
+  const name = document.getElementById('customName').value.trim() || `自定义-${itemDefs.length+1}`;
+  const pattern = document.getElementById('customPattern').value;
+  const cells = parsePattern(pattern);
+  if(!cells.length){ alert('请用 # 输入至少一个占用格。'); return; }
+  const quality = document.getElementById('customQuality').value || 'green';
+  const valueRaw = Number(document.getElementById('customValue').value);
+  const rateRaw = Number(document.getElementById('customBonusRate').value);
+  itemDefs.push(normalizeItemRecord({
+    id:'custom-'+Date.now(), name, cells, quality,
+    value:valueRaw>0?valueRaw:qualityValue(quality, cells.length), bonusRate:rateRaw>=0?rateRaw:defaultBonusRate(cells.length, quality, false),
+    threeSelfBonus:false, enabled:true
+  }, true));
+  document.getElementById('customName').value = '';
+  document.getElementById('customPattern').value = '';
+  document.getElementById('customValue').value = '2';
+  document.getElementById('customBonusRate').value = '0';
+  renderItemsTable();
+}
+
+function parsePattern(pattern){
+  const lines = pattern.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const cells = [];
+  lines.forEach((line,r)=>{
+    [...line].forEach((ch,c)=>{ if(ch==='#' || ch==='1' || ch==='■' || ch==='黑') cells.push([r,c]); });
+  });
+  return normalizeCells(cells);
+}
+
+function normalizeCells(cells){
+  if(!cells.length) return [];
+  const minR = Math.min(...cells.map(x=>x[0]));
+  const minC = Math.min(...cells.map(x=>x[1]));
+  return cells.map(([r,c])=>[r-minR,c-minC]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+}
+function cellsKey(cells){ return normalizeCells(cells).map(x=>x.join(',')).join(';'); }
+function rotate(cells){ return normalizeCells(cells.map(([r,c])=>[c,-r])); }
+function mirror(cells){ return normalizeCells(cells.map(([r,c])=>[r,-c])); }
+function orientations(cells, allowRot, allowMir){
+  const out = new Map();
+  const seeds = [normalizeCells(cells)];
+  if(allowMir) seeds.push(mirror(cells));
+  for(const seed of seeds){
+    let cur = seed;
+    const n = allowRot ? 4 : 1;
+    for(let i=0;i<n;i++){
+      out.set(cellsKey(cur), cur);
+      cur = rotate(cur);
+    }
+  }
+  return [...out.values()];
+}
+
+function buildActiveMask(){
+  let mask = 0n, count = 0;
+  for(let r=0;r<H;r++) for(let c=0;c<W;c++) if(active[r][c]){ mask |= bitOf(r,c); count++; }
+  return {mask,count};
+}
+function bitOf(r,c){ return 1n << BigInt(r*W+c); }
+
+function prepareInventoryItems(){
+  const allowRot = document.getElementById('allowRotate').checked;
+  const allowMir = document.getElementById('allowMirror').checked;
+  const {mask:activeMask} = buildActiveMask();
+  const prepared = [];
+  const skipped = [];
+  const normalizedInventory = inventory.map(x=>normalizeItemRecord(x, true));
+  for(const inv of normalizedInventory){
+    const kind = bonusKind(inv);
+    const base = {
+      uid: inv.uid,
+      no: inv.no,
+      typeId: inv.typeId,
+      typeName: inv.typeName || inv.name,
+      name: inv.name,
+      cells: normalizeCells(inv.cells),
+      area: inv.cells.length,
+      quality: inv.quality,
+      value: Math.max(0, Number(inv.value)||0),
+      bonusRate: Math.max(0, Number(inv.bonusRate)||0),
+      bonusKind: kind,
+      priorityTier: -1,
+      customPriority: inv.customPriority ?? null,
+      manualOrder: -1,
+      placements: []
+    };
+    base.priorityTier = selfPriorityTier(base);
+    const placeMap = new Map();
+    for(const ori of orientations(base.cells, allowRot, allowMir)){
+      const maxR = Math.max(...ori.map(x=>x[0])), maxC = Math.max(...ori.map(x=>x[1]));
+      for(let r0=0;r0<=H-maxR-1;r0++){
+        for(let c0=0;c0<=W-maxC-1;c0++){
+          const abs = ori.map(([r,c])=>[r+r0,c+c0]);
+          let m = 0n, ok = true;
+          for(const [r,c] of abs){
+            const b = bitOf(r,c);
+            if((activeMask & b) === 0n){ ok = false; break; }
+            m |= b;
+          }
+          if(ok && !placeMap.has(m.toString())){
+            placeMap.set(m.toString(), {
+              mask:m, cells:abs, uid:base.uid, no:base.no, itemName:base.name, typeName:base.typeName,
+              area:base.area, quality:base.quality, value:base.value, bonusRate:base.bonusRate, bonusKind:base.bonusKind, priorityTier:base.priorityTier, customPriority:base.customPriority, manualOrder:-1, itemIndex:-1
+            });
+          }
+        }
+      }
+    }
+    base.placements = [...placeMap.values()];
+    if(base.placements.length > 0) prepared.push(base);
+    else skipped.push(base);
+  }
+  const manualItems = prepared
+    .filter(t=>t.customPriority !== null)
+    .sort((a,b)=>a.customPriority-b.customPriority || b.value-a.value || b.area-a.area || a.no-b.no);
+  manualItems.forEach((t, order)=>{ t.manualOrder = order; });
+  prepared.forEach((t, idx)=>{
+    t.itemIndex = idx;
+    t.placements.forEach(p=>{
+      p.itemIndex = idx;
+      p.manualOrder = t.manualOrder;
+      p.customPriority = t.customPriority;
+    });
+  });
+  return {items:prepared, skipped, manualItems:manualItems.map(t=>({no:t.no,name:t.name,priority:t.customPriority,order:t.manualOrder}))};
+}
+
+function areAdjacent(cellsA, cellsB){
+  const bset = new Set(cellsB.map(([r,c])=>`${r},${c}`));
+  for(const [r,c] of cellsA){
+    if(bset.has(`${r-1},${c}`) || bset.has(`${r+1},${c}`) || bset.has(`${r},${c-1}`) || bset.has(`${r},${c+1}`)) return true;
+  }
+  return false;
+}
+function pairBonusEvents(a, b){
+  if(!areAdjacent(a.cells, b.cells)) return [];
+  const events = [];
+  if(a.bonusKind === 'provider' && a.bonusRate > 0){
+    events.push({kind:'single_provider', source:a.no, sourceName:a.itemName, target:b.no, targetName:b.itemName, rate:a.bonusRate, base:b.value, bonus:b.value*a.bonusRate/100});
+  }
+  if(b.bonusKind === 'provider' && b.bonusRate > 0){
+    events.push({kind:'single_provider', source:b.no, sourceName:b.itemName, target:a.no, targetName:a.itemName, rate:b.bonusRate, base:a.value, bonus:a.value*b.bonusRate/100});
+  }
+  if(a.bonusKind === 'self' && a.bonusRate > 0){
+    events.push({kind:'self_neighbor', source:a.no, sourceName:a.itemName, target:a.no, targetName:a.itemName, neighbor:b.no, neighborName:b.itemName, rate:a.bonusRate, base:a.value, bonus:a.value*a.bonusRate/100});
+  }
+  if(b.bonusKind === 'self' && b.bonusRate > 0){
+    events.push({kind:'self_neighbor', source:b.no, sourceName:b.itemName, target:b.no, targetName:b.itemName, neighbor:a.no, neighborName:a.itemName, rate:b.bonusRate, base:b.value, bonus:b.value*b.bonusRate/100});
+  }
+  return events.filter(e=>e.bonus > 0);
+}
+function adjacencyGainFor(newPlacement, existingPlacements){
+  const gain = {bonus:0, events:[]};
+  for(const old of existingPlacements){
+    const events = pairBonusEvents(newPlacement, old);
+    for(const ev of events){ gain.bonus += ev.bonus; gain.events.push(ev); }
+  }
+  return gain;
+}
+function potentialPairBonus(itemA, itemB){
+  const a = {cells:[[0,0]], no:itemA.no, itemName:itemA.name, value:itemA.value, bonusRate:itemA.bonusRate, bonusKind:itemA.bonusKind};
+  const b = {cells:[[0,1]], no:itemB.no, itemName:itemB.name, value:itemB.value, bonusRate:itemB.bonusRate, bonusKind:itemB.bonusKind};
+  return pairBonusEvents(a,b).reduce((s,e)=>s+e.bonus,0);
+}
+function maxPossibleBonus(items){
+  let total = 0;
+  for(let i=0;i<items.length;i++) for(let j=i+1;j<items.length;j++) total += potentialPairBonus(items[i], items[j]);
+  return total;
+}
+function potentialByItem(items){
+  const arr = Array(items.length).fill(0);
+  for(let i=0;i<items.length;i++){
+    for(let j=0;j<items.length;j++) if(i!==j) arr[i] += potentialPairBonus(items[i], items[j]);
+  }
+  return arr;
+}
+
+function solverWorkerMain(){
+  'use strict';
+  self.onmessage = function(ev){
+    const data = ev.data;
+    const W = data.W, H = data.H;
+    const activeMask = BigInt(data.activeMask);
+    const activeCells = data.activeCells;
+    const nodeLimit = Math.max(1000, Number(data.nodeLimit)||2500000);
+    const timeLimit = Math.max(100, Number(data.timeLimit)||20000);
+    const useBonus = !!data.useBonus;
+    const manualCount = Number(data.manualCount)||0;
+    const defaultTierCount = Number(data.defaultTierCount)||0;
+    const started = performance.now();
+    const hardDeadline = started + timeLimit;
+    let nodes = 0;
+    let lastProgress = started;
+    let currentStage = '准备搜索';
+
+    function bit(r,c){ return 1n << BigInt(r*W+c); }
+    function makeNeighborMask(cells){
+      let m = 0n;
+      for(const [r,c] of cells){
+        if(r>0) m |= bit(r-1,c);
+        if(r+1<H) m |= bit(r+1,c);
+        if(c>0) m |= bit(r,c-1);
+        if(c+1<W) m |= bit(r,c+1);
+      }
+      return m;
+    }
+    const items = data.items.map((t,itemIndex)=>({
+      ...t,
+      itemIndex,
+      placements:t.placements.map((p,placementIndex)=>({
+        ...p,
+        itemIndex,
+        placementIndex,
+        mask:BigInt(p.mask),
+        neighborMask:makeNeighborMask(p.cells)
+      }))
+    }));
+
+    function areAdjacent(a,b){ return (a.neighborMask & b.mask) !== 0n; }
+    function pairBonusEvents(a,b){
+      if(!areAdjacent(a,b)) return [];
+      const events = [];
+      if(a.bonusKind === 'provider' && a.bonusRate > 0){
+        events.push({kind:'single_provider', source:a.no, sourceName:a.itemName, target:b.no, targetName:b.itemName, rate:a.bonusRate, base:b.value, bonus:b.value*a.bonusRate/100});
+      }
+      if(b.bonusKind === 'provider' && b.bonusRate > 0){
+        events.push({kind:'single_provider', source:b.no, sourceName:b.itemName, target:a.no, targetName:a.itemName, rate:b.bonusRate, base:a.value, bonus:a.value*b.bonusRate/100});
+      }
+      if(a.bonusKind === 'self' && a.bonusRate > 0){
+        events.push({kind:'self_neighbor', source:a.no, sourceName:a.itemName, target:a.no, targetName:a.itemName, neighbor:b.no, neighborName:b.itemName, rate:a.bonusRate, base:a.value, bonus:a.value*a.bonusRate/100});
+      }
+      if(b.bonusKind === 'self' && b.bonusRate > 0){
+        events.push({kind:'self_neighbor', source:b.no, sourceName:b.itemName, target:b.no, targetName:b.itemName, neighbor:a.no, neighborName:a.itemName, rate:b.bonusRate, base:b.value, bonus:b.value*b.bonusRate/100});
+      }
+      return events.filter(x=>x.bonus>0);
+    }
+    function adjacencyGainFor(p, placed){
+      const out = {bonus:0, events:[]};
+      for(const old of placed){
+        for(const e of pairBonusEvents(p,old)){ out.bonus += e.bonus; out.events.push(e); }
+      }
+      return out;
+    }
+    function emptyManualVector(){ return Array(manualCount).fill(0); }
+    function emptyDefaultVector(){ return Array(defaultTierCount).fill(0); }
+    function addVectors(a,b){ return a.map((v,i)=>v+(b[i]||0)); }
+    function compareVectors(a,b){
+      const n = Math.max(a.length,b.length);
+      for(let i=0;i<n;i++){
+        const d = (a[i]||0)-(b[i]||0);
+        if(d!==0) return d;
+      }
+      return 0;
+    }
+    function targetPriorityGain(target, neighbor, manualVector, defaultVector, links){
+      if(target.manualOrder >= 0){
+        manualVector[target.manualOrder]++;
+        links.push({mode:'custom',target:target.no,targetName:target.itemName,neighbor:neighbor.no,neighborName:neighbor.itemName,manualOrder:target.manualOrder,customPriority:target.customPriority});
+      }else if(target.priorityTier >= 0){
+        defaultVector[target.priorityTier]++;
+        links.push({mode:'default',target:target.no,targetName:target.itemName,neighbor:neighbor.no,neighborName:neighbor.itemName,tier:target.priorityTier});
+      }
+    }
+    function priorityGainFor(p, placed){
+      const manualVector = emptyManualVector();
+      const defaultVector = emptyDefaultVector();
+      const links = [];
+      for(const old of placed){
+        if(!areAdjacent(p,old)) continue;
+        targetPriorityGain(p,old,manualVector,defaultVector,links);
+        targetPriorityGain(old,p,manualVector,defaultVector,links);
+      }
+      let weighted = 0;
+      for(let i=0;i<manualVector.length;i++) weighted += manualVector[i] * Math.max(1,manualVector.length-i) * 100000000;
+      for(let i=0;i<defaultVector.length;i++) weighted += defaultVector[i] * Math.max(1,defaultVector.length-i) * 100000;
+      return {manualVector,defaultVector,links,weighted};
+    }
+    function ownSearchPriority(p){
+      if(p.manualOrder >= 0) return 1000000000000 - p.manualOrder*1000000000;
+      if(p.priorityTier >= 0) return 100000000 - p.priorityTier*1000000;
+      return 0;
+    }
+    function instantiate(template,item){
+      return {
+        ...template,
+        uid:item.uid,
+        no:item.no,
+        itemName:item.name,
+        typeName:item.typeName,
+        area:item.area,
+        quality:item.quality,
+        value:item.value,
+        bonusRate:item.bonusRate,
+        bonusKind:item.bonusKind,
+        priorityTier:item.priorityTier,
+        customPriority:item.customPriority,
+        manualOrder:item.manualOrder,
+        itemIndex:item.itemIndex
+      };
+    }
+
+    // 仅将形状、价值和加成规则完全相同的物品合并。手动优先级物品因 manualOrder 不同不会被错误合并。
+    function groupKey(t){
+      const masks = t.placements.map(p=>p.mask.toString()).sort().join(',');
+      return [masks,t.area,t.quality,t.value,t.bonusRate,t.bonusKind,t.priorityTier,t.manualOrder,t.customPriority===null?'':t.customPriority].join('|');
+    }
+    const groupMap = new Map();
+    for(const t of items){
+      const k = groupKey(t);
+      if(!groupMap.has(k)) groupMap.set(k,{key:k,items:[],templates:t.placements.slice().sort((a,b)=>a.mask<b.mask?-1:a.mask>b.mask?1:0),area:t.area,value:t.value});
+      groupMap.get(k).items.push(t);
+    }
+    const groups = [...groupMap.values()];
+    for(const g of groups){
+      g.items.sort((a,b)=>a.no-b.no);
+      g.templates.forEach((p,i)=>{ p.placementIndex=i; });
+    }
+
+    const totalArea = items.reduce((s,x)=>s+x.area,0);
+    const totalBase = items.reduce((s,x)=>s+x.value,0);
+    const totalItems = items.length;
+    const EPS = 1e-9;
+    let best = {
+      baseScore:-1,bonusScore:0,totalScore:-1,area:-1,itemCount:-1,
+      manualPriorityVector:emptyManualVector(),defaultPriorityVector:emptyDefaultVector(),
+      placements:[],occupied:0n,bonusEvents:[],priorityLinks:[]
+    };
+
+    function betterThanBest(candidate){
+      if(candidate.area !== best.area) return candidate.area > best.area;
+      if(Math.abs(candidate.baseScore-best.baseScore)>EPS) return candidate.baseScore > best.baseScore;
+      const mc = compareVectors(candidate.manualPriorityVector,best.manualPriorityVector);
+      if(mc!==0) return mc>0;
+      const dc = compareVectors(candidate.defaultPriorityVector,best.defaultPriorityVector);
+      if(dc!==0) return dc>0;
+      if(Math.abs(candidate.bonusScore-best.bonusScore)>EPS) return candidate.bonusScore > best.bonusScore;
+      if(candidate.itemCount !== best.itemCount) return candidate.itemCount > best.itemCount;
+      return candidate.totalScore > best.totalScore + EPS;
+    }
+    function accept(candidate){ if(betterThanBest(candidate)) best = candidate; }
+    function evaluateComplete(placements){
+      let baseScore=0, area=0, occupied=0n;
+      const manualVector=emptyManualVector(), defaultVector=emptyDefaultVector();
+      const bonusEvents=[], priorityLinks=[];
+      let bonusScore=0;
+      for(const p of placements){ baseScore+=p.value; area+=p.area; occupied|=p.mask; }
+      for(let i=0;i<placements.length;i++) for(let j=i+1;j<placements.length;j++){
+        const a=placements[i], b=placements[j];
+        if(!areAdjacent(a,b)) continue;
+        targetPriorityGain(a,b,manualVector,defaultVector,priorityLinks);
+        targetPriorityGain(b,a,manualVector,defaultVector,priorityLinks);
+        if(useBonus){
+          for(const e of pairBonusEvents(a,b)){ bonusScore+=e.bonus; bonusEvents.push(e); }
+        }
+      }
+      return {baseScore,bonusScore,totalScore:baseScore+bonusScore,area,itemCount:placements.length,manualPriorityVector:manualVector,defaultPriorityVector:defaultVector,placements:placements.slice(),occupied,bonusEvents,priorityLinks};
+    }
+    function currentCandidate(baseScore,bonusScore,area,itemCount,manualVector,defaultVector,placements,occupied,bonusEvents,priorityLinks){
+      return {baseScore,bonusScore,totalScore:baseScore+bonusScore,area,itemCount,manualPriorityVector:manualVector.slice(),defaultPriorityVector:defaultVector.slice(),placements:placements.slice(),occupied,bonusEvents:bonusEvents.slice(),priorityLinks:priorityLinks.slice()};
+    }
+    function reportProgress(force=false,extra={}){
+      const now=performance.now();
+      if(!force && now-lastProgress<250) return;
+      lastProgress=now;
+      self.postMessage({type:'progress',stage:currentStage,nodes,elapsed:Math.round(now-started),bestArea:best.area,bestBase:best.baseScore,bestItems:best.itemCount,totalArea,totalItems,...extra});
+    }
+    function serializeBest(){
+      return {
+        ...best,
+        occupied:best.occupied.toString(),
+        placements:best.placements.map(p=>({...p,mask:p.mask.toString(),neighborMask:p.neighborMask.toString()}))
+      };
+    }
+    function hitBudget(deadline,nodeCap){
+      if(nodes>=nodeCap || performance.now()>=deadline) return true;
+      return false;
+    }
+
+    function freeComponents(occupied){
+      let remaining = activeMask & ~occupied;
+      const out=[];
+      while(remaining){
+        let seed=-1;
+        for(let i=0;i<W*H;i++) if((remaining&(1n<<BigInt(i)))!==0n){ seed=i; break; }
+        if(seed<0) break;
+        let comp=0n, frontier=1n<<BigInt(seed);
+        remaining &= ~frontier;
+        while(frontier){
+          comp |= frontier;
+          let next=0n;
+          for(let i=0;i<W*H;i++) if((frontier&(1n<<BigInt(i)))!==0n){
+            const r=Math.floor(i/W), c=i%W;
+            if(r>0) next|=bit(r-1,c);
+            if(r+1<H) next|=bit(r+1,c);
+            if(c>0) next|=bit(r,c-1);
+            if(c+1<W) next|=bit(r,c+1);
+          }
+          next &= remaining;
+          remaining &= ~next;
+          frontier=next;
+        }
+        let size=0;
+        for(let i=0;i<W*H;i++) if((comp&(1n<<BigInt(i)))!==0n) size++;
+        out.push({mask:comp,size});
+      }
+      return out;
+    }
+
+    // 完整装入阶段的必要条件剪枝：每个剩余物品必须至少有一个合法位置；无剩余空格时，各连通空区面积必须能由剩余物品面积组合出来。
+    function fullPackingPrune(occupied,rem,lastIdx,remArea){
+      const freeCount=activeCells-countBits(occupied & activeMask);
+      if(freeCount<remArea) return false;
+      const comps=freeComponents(occupied);
+      const noSlack = freeCount===remArea;
+      const forced=Array(comps.length).fill(0);
+      const remainingCopies=[];
+      for(let gi=0;gi<groups.length;gi++){
+        const cnt=rem[gi];
+        if(cnt<=0) continue;
+        const g=groups[gi];
+        const compSet=new Set();
+        let feasibleCount=0;
+        for(let pi=lastIdx[gi]+1;pi<g.templates.length;pi++){
+          const p=g.templates[pi];
+          if((p.mask&occupied)!==0n) continue;
+          feasibleCount++;
+          for(let ci=0;ci<comps.length;ci++) if((p.mask & ~comps[ci].mask)===0n){ compSet.add(ci); break; }
+        }
+        if(feasibleCount<cnt || compSet.size===0) return false;
+        if(compSet.size===1) forced[[...compSet][0]] += g.area*cnt;
+        for(let k=0;k<cnt;k++) remainingCopies.push({area:g.area,compSet});
+      }
+      for(let ci=0;ci<comps.length;ci++) if(forced[ci]>comps[ci].size) return false;
+      if(noSlack){
+        for(let ci=0;ci<comps.length;ci++){
+          let bits=1n;
+          for(const cp of remainingCopies){
+            if(cp.compSet.has(ci)) bits |= bits << BigInt(cp.area);
+          }
+          if((bits & (1n<<BigInt(comps[ci].size)))===0n) return false;
+        }
+      }
+      return true;
+    }
+    function countBits(m){
+      let n=0;
+      while(m){ m &= m-1n; n++; }
+      return n;
+    }
+
+    function selectGroup(rem,lastIdx,occupied){
+      let bestSel=null;
+      for(let gi=0;gi<groups.length;gi++){
+        if(rem[gi]<=0) continue;
+        const g=groups[gi];
+        const feasible=[];
+        for(let pi=lastIdx[gi]+1;pi<g.templates.length;pi++) if((g.templates[pi].mask&occupied)===0n) feasible.push(pi);
+        if(feasible.length<rem[gi]) return {dead:true};
+        const item=g.items[g.items.length-rem[gi]];
+        const priority=ownSearchPriority(item);
+        const ratio=feasible.length/rem[gi];
+        if(!bestSel || ratio<bestSel.ratio || (ratio===bestSel.ratio && feasible.length<bestSel.feasible.length) || (ratio===bestSel.ratio && feasible.length===bestSel.feasible.length && priority>bestSel.priority) || (ratio===bestSel.ratio && feasible.length===bestSel.feasible.length && priority===bestSel.priority && g.area>bestSel.group.area)){
+          bestSel={dead:false,gi,group:g,feasible,ratio,priority,item};
+        }
+      }
+      return bestSel;
+    }
+    function candidatePackingScore(template,occupied,placed,rem,lastIdx,selectedGi){
+      let adjacent=0;
+      for(const old of placed) if((template.neighborMask&old.mask)!==0n) adjacent++;
+      let future=0;
+      const nextOcc=occupied|template.mask;
+      for(let gi=0;gi<groups.length;gi++){
+        let need=rem[gi]-(gi===selectedGi?1:0);
+        if(need<=0) continue;
+        const start=gi===selectedGi?template.placementIndex+1:lastIdx[gi]+1;
+        let count=0;
+        for(let pi=start;pi<groups[gi].templates.length;pi++) if((groups[gi].templates[pi].mask&nextOcc)===0n) count++;
+        future += Math.min(count,need*8);
+      }
+      return future*100 + adjacent*20;
+    }
+
+    let fullPackingAttempted = totalArea<=activeCells;
+    let fullPackingFound = false;
+    let fullSearchCutoff = false;
+    let optimizationCutoff = false;
+    let fallbackCutoff = false;
+    let fullSeed = null;
+
+    function findFullPacking(deadline,nodeCap){
+      currentStage='阶段1：优先寻找全部物品可行摆法';
+      reportProgress(true,{fullPackingFound:false});
+      const rem=groups.map(g=>g.items.length);
+      const lastIdx=groups.map(()=>-1);
+      const placed=[];
+      const memo=new Set();
+      const memoCap=180000;
+      function rec(occupied,remArea,depth){
+        nodes++;
+        if((nodes&2047)===0) reportProgress(false,{fullPackingFound:false});
+        if(hitBudget(deadline,nodeCap)){ fullSearchCutoff=true; return false; }
+        if(depth===totalItems){ fullSeed=placed.slice(); return true; }
+        if(!fullPackingPrune(occupied,rem,lastIdx,remArea)) return false;
+        const key=occupied.toString(36)+'|'+rem.join(',')+'|'+lastIdx.join(',');
+        if(memo.has(key)) return false;
+        const sel=selectGroup(rem,lastIdx,occupied);
+        if(!sel || sel.dead){ if(memo.size<memoCap) memo.add(key); return false; }
+        const {gi,group,item}=sel;
+        const scored=sel.feasible.map(pi=>({pi,score:candidatePackingScore(group.templates[pi],occupied,placed,rem,lastIdx,gi)}));
+        scored.sort((a,b)=>b.score-a.score || a.pi-b.pi);
+        const oldLast=lastIdx[gi];
+        rem[gi]--;
+        for(const x of scored){
+          const template=group.templates[x.pi];
+          lastIdx[gi]=x.pi;
+          const p=instantiate(template,item);
+          placed.push(p);
+          if(rec(occupied|p.mask,remArea-group.area,depth+1)) return true;
+          placed.pop();
+          if(fullSearchCutoff) break;
+        }
+        rem[gi]++;
+        lastIdx[gi]=oldLast;
+        if(!fullSearchCutoff && memo.size<memoCap) memo.add(key);
+        return false;
+      }
+      return rec(0n,totalArea,0);
+    }
+
+    function localImprove(seed,deadline){
+      currentStage='阶段2：在完整装入前提下改善邻接';
+      let current=seed.slice();
+      let curEval=evaluateComplete(current);
+      accept(curEval);
+      let changed=true, passes=0;
+      while(changed && performance.now()<deadline && nodes<nodeLimit && passes<4){
+        changed=false; passes++;
+        for(let i=0;i<current.length;i++){
+          if(performance.now()>=deadline || nodes>=nodeLimit) break;
+          const item=items[current[i].itemIndex];
+          let occupiedOthers=0n;
+          for(let j=0;j<current.length;j++) if(j!==i) occupiedOthers|=current[j].mask;
+          let bestMove=null, bestMoveEval=curEval;
+          for(const template of item.placements){
+            nodes++;
+            if((template.mask&occupiedOthers)!==0n) continue;
+            const candidate=current.slice();
+            candidate[i]=instantiate(template,item);
+            const evc=evaluateComplete(candidate);
+            if(compareEvaluations(evc,bestMoveEval)>0){ bestMoveEval=evc; bestMove=candidate[i]; }
+          }
+          if(bestMove){ current[i]=bestMove; curEval=bestMoveEval; accept(curEval); changed=true; }
+          reportProgress(false,{fullPackingFound:true});
+        }
+      }
+      return current;
+    }
+    function compareEvaluations(a,b){
+      if(a.area!==b.area) return a.area>b.area?1:-1;
+      if(Math.abs(a.baseScore-b.baseScore)>EPS) return a.baseScore>b.baseScore?1:-1;
+      const mc=compareVectors(a.manualPriorityVector,b.manualPriorityVector); if(mc!==0) return mc;
+      const dc=compareVectors(a.defaultPriorityVector,b.defaultPriorityVector); if(dc!==0) return dc;
+      if(Math.abs(a.bonusScore-b.bonusScore)>EPS) return a.bonusScore>b.bonusScore?1:-1;
+      return 0;
+    }
+
+    function optimizeFullPackings(deadline,nodeCap){
+      currentStage='阶段2：在完整装入前提下搜索更优邻接';
+      const rem=groups.map(g=>g.items.length);
+      const lastIdx=groups.map(()=>-1);
+      const placed=[], bonusEvents=[], priorityLinks=[];
+      function rec(occupied,baseScore,bonusScore,manualVector,defaultVector,remArea,depth){
+        nodes++;
+        if((nodes&2047)===0) reportProgress(false,{fullPackingFound:true});
+        if(hitBudget(deadline,nodeCap)){ optimizationCutoff=true; return; }
+        if(depth===totalItems){
+          accept(currentCandidate(baseScore,bonusScore,totalArea,totalItems,manualVector,defaultVector,placed,occupied,bonusEvents,priorityLinks));
+          return;
+        }
+        if(!fullPackingPrune(occupied,rem,lastIdx,remArea)) return;
+        const sel=selectGroup(rem,lastIdx,occupied);
+        if(!sel || sel.dead) return;
+        const {gi,group,item}=sel;
+        const scored=[];
+        for(const pi of sel.feasible){
+          const p=instantiate(group.templates[pi],item);
+          const pg=priorityGainFor(p,placed);
+          const bg=useBonus?adjacencyGainFor(p,placed):{bonus:0,events:[]};
+          const compact=placed.reduce((s,old)=>s+(areAdjacent(p,old)?1:0),0);
+          scored.push({pi,p,pg,bg,key:pg.weighted+ownSearchPriority(p)+bg.bonus*100+compact*1000});
+        }
+        scored.sort((a,b)=>b.key-a.key || a.pi-b.pi);
+        const oldLast=lastIdx[gi];
+        rem[gi]--;
+        for(const x of scored){
+          lastIdx[gi]=x.pi;
+          placed.push(x.p); bonusEvents.push(...x.bg.events); priorityLinks.push(...x.pg.links);
+          rec(occupied|x.p.mask,baseScore+x.p.value,bonusScore+x.bg.bonus,addVectors(manualVector,x.pg.manualVector),addVectors(defaultVector,x.pg.defaultVector),remArea-group.area,depth+1);
+          for(let k=0;k<x.pg.links.length;k++) priorityLinks.pop();
+          for(let k=0;k<x.bg.events.length;k++) bonusEvents.pop();
+          placed.pop();
+          if(optimizationCutoff) break;
+        }
+        rem[gi]++;
+        lastIdx[gi]=oldLast;
+      }
+      rec(0n,0,0,emptyManualVector(),emptyDefaultVector(),totalArea,0);
+    }
+
+    function searchBestPartial(deadline,nodeCap){
+      currentStage='阶段2：搜索最大空间利用方案';
+      const rem=groups.map(g=>g.items.length);
+      const lastIdx=groups.map(()=>-1);
+      const placed=[], bonusEvents=[], priorityLinks=[];
+      const initialRemArea=totalArea, initialRemBase=totalBase;
+      function rec(occupied,baseScore,bonusScore,area,itemCount,manualVector,defaultVector,remArea,remBase){
+        nodes++;
+        if((nodes&2047)===0) reportProgress(false,{fullPackingFound:false});
+        if(hitBudget(deadline,nodeCap)){ fallbackCutoff=true; return; }
+        accept(currentCandidate(baseScore,bonusScore,area,itemCount,manualVector,defaultVector,placed,occupied,bonusEvents,priorityLinks));
+        const free=activeCells-countBits(occupied&activeMask);
+        const maxArea=area+Math.min(remArea,free);
+        if(maxArea<best.area) return;
+        if(maxArea===best.area && baseScore+remBase<best.baseScore-EPS) return;
+        let sel=null;
+        for(let gi=0;gi<groups.length;gi++){
+          if(rem[gi]<=0) continue;
+          const g=groups[gi];
+          const feasible=[];
+          for(let pi=lastIdx[gi]+1;pi<g.templates.length;pi++) if((g.templates[pi].mask&occupied)===0n) feasible.push(pi);
+          const item=g.items[g.items.length-rem[gi]];
+          const priority=ownSearchPriority(item);
+          const ratio=feasible.length/Math.max(1,rem[gi]);
+          if(!sel || ratio<sel.ratio || (ratio===sel.ratio && priority>sel.priority) || (ratio===sel.ratio && priority===sel.priority && g.area>sel.group.area)) sel={gi,group:g,feasible,ratio,priority,item};
+        }
+        if(!sel) return;
+        const {gi,group,item}=sel;
+        const scored=[];
+        for(const pi of sel.feasible){
+          const p=instantiate(group.templates[pi],item);
+          const pg=priorityGainFor(p,placed);
+          const bg=useBonus?adjacencyGainFor(p,placed):{bonus:0,events:[]};
+          scored.push({pi,p,pg,bg,key:pg.weighted+ownSearchPriority(p)+p.area*100000+p.value*100+bg.bonus});
+        }
+        scored.sort((a,b)=>b.key-a.key || a.pi-b.pi);
+        const oldLast=lastIdx[gi];
+        rem[gi]--;
+        for(const x of scored){
+          lastIdx[gi]=x.pi;
+          placed.push(x.p); bonusEvents.push(...x.bg.events); priorityLinks.push(...x.pg.links);
+          rec(occupied|x.p.mask,baseScore+x.p.value,bonusScore+x.bg.bonus,area+x.p.area,itemCount+1,addVectors(manualVector,x.pg.manualVector),addVectors(defaultVector,x.pg.defaultVector),remArea-group.area,remBase-group.value);
+          for(let k=0;k<x.pg.links.length;k++) priorityLinks.pop();
+          for(let k=0;k<x.bg.events.length;k++) bonusEvents.pop();
+          placed.pop();
+          if(fallbackCutoff) break;
+        }
+        rem[gi]++;
+        lastIdx[gi]=oldLast;
+        if(fallbackCutoff) return;
+        // 对同组相同物品，跳过分支一次性跳过尚未处理的全部副本，避免重复枚举“跳过哪一个副本”。
+        const skipCount=rem[gi];
+        const skipArea=skipCount*group.area, skipBase=skipCount*group.value;
+        rem[gi]=0;
+        rec(occupied,baseScore,bonusScore,area,itemCount,manualVector,defaultVector,remArea-skipArea,remBase-skipBase);
+        rem[gi]=skipCount;
+      }
+      rec(0n,0,0,0,0,emptyManualVector(),emptyDefaultVector(),initialRemArea,initialRemBase);
+    }
+
+    if(fullPackingAttempted){
+      const stageDeadline=Math.min(hardDeadline,started+timeLimit*0.72);
+      const stageNodeCap=Math.min(nodeLimit,Math.max(1000,Math.floor(nodeLimit*0.72)));
+      fullPackingFound=findFullPacking(stageDeadline,stageNodeCap);
+      if(fullPackingFound){
+        accept(evaluateComplete(fullSeed));
+        self.postMessage({type:'incumbent',stage:'已找到全部物品可行摆法，继续优化邻接',best:serializeBest(),nodes,elapsed:Math.round(performance.now()-started),fullPackingFound:true,totalArea,totalItems});
+        const localDeadline=Math.min(hardDeadline,performance.now()+Math.max(250,Math.min(1500,timeLimit*0.08)));
+        fullSeed=localImprove(fullSeed,localDeadline);
+        if(performance.now()<hardDeadline && nodes<nodeLimit) optimizeFullPackings(hardDeadline,nodeLimit);
+      }else if(performance.now()<hardDeadline && nodes<nodeLimit){
+        searchBestPartial(hardDeadline,nodeLimit);
+      }
+    }else{
+      searchBestPartial(hardDeadline,nodeLimit);
+    }
+
+    const elapsed=Math.round(performance.now()-started);
+    const hardCutoff=performance.now()>=hardDeadline || nodes>=nodeLimit;
+    const stopped=hardCutoff || fullSearchCutoff || optimizationCutoff || fallbackCutoff;
+    currentStage='完成';
+    reportProgress(true,{fullPackingFound});
+    self.postMessage({type:'done',best:serializeBest(),nodes,elapsed,stopped,fullPackingAttempted,fullPackingFound,fullSearchCutoff,optimizationCutoff,fallbackCutoff,totalArea,totalBase,totalItems});
+  };
+}
+
+
+function createSolverWorker(){
+  const source = `(${solverWorkerMain.toString()})();`;
+  const url = URL.createObjectURL(new Blob([source], {type:'text/javascript'}));
+  const worker = new Worker(url);
+  worker._blobUrl = url;
+  return worker;
+}
+
+function setSolverRunning(running){
+  const solveBtn = document.getElementById('solveBtn');
+  const cancelBtn = document.getElementById('cancelSolveBtn');
+  solveBtn.disabled = running;
+  solveBtn.textContent = running ? '正在计算…' : '计算最优摆放解';
+  cancelBtn.disabled = !running;
+}
+
+function cleanupSolverWorker(){
+  if(!solverWorker) return;
+  const url = solverWorker._blobUrl;
+  solverWorker.terminate();
+  if(url) URL.revokeObjectURL(url);
+  solverWorker = null;
+  setSolverRunning(false);
+}
+
+function cancelSolve(){
+  if(!solverWorker) return;
+  cleanupSolverWorker();
+  document.getElementById('statusBox').textContent = '计算已由用户停止。可以降低搜索节点/时间上限后重新计算，也可以直接再次计算。';
+}
+
+function solveAndRender(){
+  if(solverWorker) return;
+  const prepared = prepareInventoryItems();
+  const {items, skipped, manualItems} = prepared;
+  const {mask:activeMask, count:activeCells} = buildActiveMask();
+  if(activeCells===0){ alert('请至少选择一个已解锁空间格。'); return; }
+  if(inventory.length===0){ alert('请先从物品库添加已有物品。'); return; }
+  if(items.length===0){ alert('已有物品都无法放入当前空间。请调整空间、旋转/镜像设置或物品清单。'); return; }
+  const nodeLimit = Math.max(1000, Number(document.getElementById('nodeLimit').value)||2500000);
+  const timeLimit = Math.max(100, Number(document.getElementById('timeLimit').value)||20000);
+  const useBonus = document.getElementById('useAdjacencyBonus').checked;
+
+  const serialItems = items.map(t=>({
+    ...t,
+    placements:t.placements.map(p=>({...p, mask:p.mask.toString()}))
+  }));
+  solverWorker = createSolverWorker();
+  setSolverRunning(true);
+  const totalSearchArea = items.reduce((sum,x)=>sum+x.area,0);
+  document.getElementById('statusBox').textContent = `正在后台搜索…
+物品总占格：${totalSearchArea}，可用空间：${activeCells}
+${totalSearchArea<=activeCells?'将先寻找“全部物品均放入”的可行摆法。':'物品总面积超过空间，将搜索最大空间利用方案。'}
+节点上限：${nodeLimit.toLocaleString('zh-CN')}
+时间上限：${timeLimit} ms
+手动优先物品：${manualItems.length} 件
+
+页面仍可正常操作；需要中止时点击“停止计算”。`;
+
+  solverWorker.onmessage = function(ev){
+    const msg = ev.data;
+    if(msg.type === 'progress'){
+      document.getElementById('statusBox').textContent = `${msg.stage || '正在后台搜索'}
+已检查节点：${msg.nodes.toLocaleString('zh-CN')}
+已耗时：${msg.elapsed} ms
+当前最好空间利用：${msg.bestArea}/${activeCells}
+当前最好放入物品：${msg.bestItems ?? 0}/${msg.totalItems ?? items.length}
+当前最好基础值：${formatNum(msg.bestBase)}
+
+页面不会被搜索阻塞，可点击“停止计算”。`;
+      return;
+    }
+    if(msg.type === 'incumbent'){
+      renderResultGrid(msg.best);
+      document.getElementById('statusBox').textContent = `已找到全部物品都能放入的摆法，并已先显示。
+正在继续优化邻接关系…
+已检查节点：${msg.nodes.toLocaleString('zh-CN')}
+已耗时：${msg.elapsed} ms
+空间利用：${msg.best.area}/${activeCells}
+放入物品：${msg.best.itemCount}/${msg.totalItems}
+
+可等待最终结果，也可点击“停止计算”保留当前预览。`;
+      return;
+    }
+    if(msg.type !== 'done') return;
+    const workerRef = solverWorker;
+    const best = msg.best;
+    lastResult = {
+      best, nodes:msg.nodes, elapsed:msg.elapsed, stopped:msg.stopped, width:W, height:H, active:active.map(r=>r.slice()),
+      inventory:inventory.map(x=>({...x,cells:cloneCells(x.cells)})),
+      settings:{
+        allowRotate:document.getElementById('allowRotate').checked,
+        allowMirror:document.getElementById('allowMirror').checked,
+        useAdjacencyBonus:useBonus,
+        optimizationOrder:['used_area','base_value','manual_priority_neighbors','default_priority_neighbors','percentage_bonus','item_count'],
+        priorityTiers:SELF_PRIORITY_TIERS,
+        manualPriorityRule:'1 is highest; blank uses default rules'
+      },
+      skipped:skipped.map(x=>({no:x.no,name:x.name,area:x.area,value:x.value})),
+      manualItems,
+      solverMeta:{
+        fullPackingAttempted:msg.fullPackingAttempted,
+        fullPackingFound:msg.fullPackingFound,
+        fullSearchCutoff:msg.fullSearchCutoff,
+        optimizationCutoff:msg.optimizationCutoff,
+        fallbackCutoff:msg.fallbackCutoff,
+        totalArea:msg.totalArea,
+        totalBase:msg.totalBase,
+        totalItems:msg.totalItems
+      }
+    };
+    if(workerRef){
+      const url = workerRef._blobUrl;
+      workerRef.terminate();
+      if(url) URL.revokeObjectURL(url);
+    }
+    solverWorker = null;
+    setSolverRunning(false);
+    renderResultGrid(best);
+    renderStats(best,msg.nodes,msg.elapsed,msg.stopped,activeCells,skipped,lastResult.solverMeta);
+  };
+  solverWorker.onerror = function(err){
+    const message = err && err.message ? err.message : '未知错误';
+    cleanupSolverWorker();
+    document.getElementById('statusBox').textContent = `计算失败：${message}`;
+  };
+  solverWorker.postMessage({
+    items:serialItems,
+    activeMask:activeMask.toString(), activeCells, W, H, nodeLimit, timeLimit, useBonus,
+    manualCount:manualItems.length,
+    defaultTierCount:SELF_PRIORITY_TIERS.length
+  });
+}
+
+
+function renderResultGrid(best){
+  const el = document.getElementById('resultGrid');
+  el.style.gridTemplateColumns = `repeat(${W}, var(--cell))`;
+  el.innerHTML = '';
+  const cellMap = new Map();
+  const legends = [];
+  if(best && best.placements){
+    best.placements.forEach((p,i)=>{
+      const color = COLORS[i%COLORS.length];
+      legends.push({label:`#${p.no}:${p.itemName}`, color});
+      p.cells.forEach(([r,c])=>cellMap.set(`${r},${c}`, {label:p.no, color, name:p.itemName}));
+    });
+  }
+  for(let r=0;r<H;r++){
+    for(let c=0;c<W;c++){
+      const div = document.createElement('div');
+      div.className = 'cell' + (active[r][c] ? '' : ' inactive');
+      if(active[r][c]){
+        const x = cellMap.get(`${r},${c}`);
+        if(x){ div.textContent = x.label; div.style.background = x.color; div.title = x.name; }
+      } else div.textContent = '×';
+      el.appendChild(div);
+    }
+  }
+  const legend = document.getElementById('legend');
+  legend.innerHTML = '';
+  legends.forEach(x=>{
+    const t = document.createElement('span');
+    t.className = 'tag';
+    t.innerHTML = `<span class="sw" style="background:${x.color}"></span>${escapeHtml(x.label)}`;
+    legend.appendChild(t);
+  });
+}
+
+function renderStats(best, nodes, elapsed, stopped, activeCells, skipped, solverMeta={}){
+  document.getElementById('statScore').textContent = formatNum(best.totalScore);
+  document.getElementById('statBase').textContent = formatNum(best.baseScore);
+  document.getElementById('statBonus').textContent = formatNum(best.bonusScore);
+  const manualPriorityTotal = (best.manualPriorityVector || []).reduce((a,b)=>a+b,0);
+  const defaultPriorityTotal = (best.defaultPriorityVector || []).reduce((a,b)=>a+b,0);
+  document.getElementById('statPriority').textContent = `${manualPriorityTotal + defaultPriorityTotal} 次`;
+  document.getElementById('statArea').textContent = `${best.area}/${activeCells}`;
+  document.getElementById('statItems').textContent = best.itemCount;
+  document.getElementById('statNodes').textContent = nodes.toLocaleString('zh-CN');
+  const unused = activeCells - best.area;
+  const list = best.placements.map((p)=>`#${p.no} ${p.itemName}｜${qualityName(p.quality)}｜${p.area}格｜基础值 ${formatNum(p.value)}｜${p.customPriority !== null && p.customPriority !== undefined ? `手动邻接优先级 ${p.customPriority}` : '默认邻接规则'}｜${bonusDescription(p)}｜坐标 ${p.cells.map(([r,c])=>`(${r+1},${c+1})`).join(' ')}`).join('\n') || '未放入任何物品。';
+  const eventList = best.bonusEvents.length ? best.bonusEvents.map(eventLine).join('\n') : '无有效百分比加成。';
+  const prioritySummary = buildPrioritySummary(best);
+  const skippedText = skipped && skipped.length ? `\n\n未参与搜索（单件在当前空间/方向规则下没有任何合法位置）：\n${skipped.map(x=>`#${x.no} ${x.name}`).join('\n')}` : '';
+  const placedNos = new Set(best.placements.map(p=>String(p.no)));
+  const omitted = inventory.filter(x=>!placedNos.has(String(x.no)) && !(skipped||[]).some(y=>String(y.no)===String(x.no)));
+  const omittedText = omitted.length ? `\n\n本方案未放入：\n${omitted.map(x=>`#${x.no} ${x.name}（${x.cells.length}格）`).join('\n')}` : '';
+  let conclusion;
+  if(solverMeta.fullPackingFound){
+    conclusion = solverMeta.optimizationCutoff ? '已确认所有物品均可放入；邻接优化达到时间/节点上限，返回目前最优的完整装入方案。' : '已确认所有物品均可放入，并完成邻接优化。';
+  }else if(solverMeta.totalArea>activeCells){
+    conclusion = stopped ? '物品总面积超过可用空间；搜索达到上限，返回目前找到的最大利用方案。' : '物品总面积超过可用空间；已完成最大利用方案搜索。';
+  }else if(solverMeta.fullSearchCutoff){
+    conclusion = '在完整装入可行性搜索达到上限前尚未找到全装方案；这不等于无法全部放入。建议提高搜索时间或节点上限。';
+  }else if(solverMeta.fullPackingAttempted){
+    conclusion = '完整装入搜索已穷尽：在当前空间、形状、旋转和镜像规则下，无法把所有物品同时放入。';
+  }else{
+    conclusion = stopped ? '搜索达到上限，返回当前最好方案。' : '搜索完成。';
+  }
+  document.getElementById('statusBox').textContent = `${conclusion}\n耗时：${elapsed} ms\n物品总占格：${solverMeta.totalArea ?? '-'}，可用空间：${activeCells}\n放入物品：${best.itemCount}/${solverMeta.totalItems ?? inventory.length}\n空余可用格：${unused}\n比较顺序：先确认完整装入可行性 ＞ 已用格子 ＞ 已放基础值 ＞ 手动指定物品邻接（1最高）＞ 默认邻接规则 ＞ 百分比加成 ＞ 物品数\n显示总评分：${formatNum(best.totalScore)} = 基础值 ${formatNum(best.baseScore)} + 百分比加成 ${formatNum(best.bonusScore)}\n\n重点物品邻接：\n${prioritySummary}\n\n摆放清单：\n${list}\n\n百分比加成清单：\n${eventList}${omittedText}${skippedText}`;
+}
+function buildPrioritySummary(best){
+  const countByItem = new Map();
+  for(const p of best.placements){
+    if(p.manualOrder >= 0){
+      countByItem.set(p.no, {no:p.no, name:p.itemName, mode:'custom', customPriority:p.customPriority, manualOrder:p.manualOrder, count:0});
+    }else if(p.priorityTier >= 0){
+      countByItem.set(p.no, {no:p.no, name:p.itemName, mode:'default', tier:p.priorityTier, count:0});
+    }
+  }
+  for(const link of best.priorityLinks || []){
+    const x = countByItem.get(link.target);
+    if(x) x.count++;
+  }
+  const rows = [...countByItem.values()].sort((a,b)=>{
+    if(a.mode !== b.mode) return a.mode === 'custom' ? -1 : 1;
+    if(a.mode === 'custom') return a.customPriority-b.customPriority || a.manualOrder-b.manualOrder || b.count-a.count || a.no-b.no;
+    return a.tier-b.tier || b.count-a.count || a.no-b.no;
+  });
+  if(!rows.length) return '当前没有手动指定优先级的物品，也没有符合默认邻接规则的重点物品。';
+  return rows.map(x=>{
+    const label = x.mode === 'custom' ? `手动优先级 ${x.customPriority}` : SELF_PRIORITY_TIERS[x.tier].label;
+    return `[${label}] #${x.no} ${x.name}：${x.count} 个不同邻居`;
+  }).join('\n');
+}
+
+function eventLine(e){
+  if(e.kind === 'single_provider') return `单格 #${e.source} ${e.sourceName} → #${e.target} ${e.targetName}：${formatNum(e.base)} × ${formatNum(e.rate)}% = +${formatNum(e.bonus)}`;
+  if(e.kind === 'self_neighbor') return `#${e.target} ${e.targetName} 因相邻 #${e.neighbor} ${e.neighborName} 自身加成：${formatNum(e.base)} × ${formatNum(e.rate)}% = +${formatNum(e.bonus)}`;
+  return `+${formatNum(e.bonus)}`;
+}
+
+function saveConfig(){
+  const data = {
+    W,H,active,itemDefs,inventory,nextItemNo,
+    allowRotate:document.getElementById('allowRotate').checked,
+    allowMirror:document.getElementById('allowMirror').checked,
+    useAdjacencyBonus:document.getElementById('useAdjacencyBonus').checked
+  };
+  localStorage.setItem('bagSolverConfig', JSON.stringify(data));
+  alert('已保存到浏览器本地存储。');
+}
+function loadConfig(){
+  const raw = localStorage.getItem('bagSolverConfig');
+  if(!raw){ alert('没有找到已保存配置。'); return; }
+  try{
+    const data = JSON.parse(raw);
+    W = data.W || 7; H = data.H || 6;
+    active = data.active || Array.from({length:H},()=>Array(W).fill(true));
+    itemDefs = data.itemDefs ? cloneItems(data.itemDefs) : cloneItems(DEFAULT_ITEMS);
+    if(Array.isArray(data.inventory)){
+      inventory = data.inventory.map(x=>normalizeItemRecord({...x, cells:cloneCells(x.cells || [])}, true));
+    }else{
+      inventory = [];
+      let no = 1;
+      for(const def of itemDefs){
+        const qty = Math.max(0, Math.floor(Number(def.qty)||0));
+        for(let i=0;i<qty;i++) inventory.push(normalizeItemRecord({uid:'migrate-'+Date.now()+'-'+no, no:no++, typeId:def.id, typeName:def.name, name:def.name, cells:cloneCells(def.cells), quality:def.quality, value:def.value, bonusRate:def.bonusRate, threeSelfBonus:!!def.threeSelfBonus}, true));
+      }
+    }
+    nextItemNo = data.nextItemNo || (inventory.reduce((m,x)=>Math.max(m, Number(x.no)||0),0)+1);
+    document.getElementById('gridW').value = W; document.getElementById('gridH').value = H;
+    document.getElementById('allowRotate').checked = data.allowRotate !== false;
+    document.getElementById('allowMirror').checked = !!data.allowMirror;
+    document.getElementById('useAdjacencyBonus').checked = data.useAdjacencyBonus !== false;
+    renderSpaceGrid(); renderItemsTable(); renderInventoryTable(); renderResultGrid(null);
+  }catch(e){ alert('读取失败：配置数据损坏。'); }
+}
+
+function exportResult(){
+  const data = lastResult || {message:'尚未计算结果', W, H, active, itemDefs, inventory};
+  const blob = new Blob([JSON.stringify(data, (k,v)=> typeof v === 'bigint' ? v.toString() : v, 2)], {type:'application/json;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bag-solver-result.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>\"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function escapeAttr(s){ return escapeHtml(s).replace(/'/g,'&#39;'); }
+function formatNum(x){ const n = Number(x)||0; return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.00$/,''); }
+function formatPlain(x){ const n = Number(x)||0; return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.00$/,''); }
+
+init();
+</script>
+</body>
+</html>
