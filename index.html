@@ -268,8 +268,6 @@ function normalizeItemRecord(item, keepManualRate=false){
   if(area === 3 && threeSelfBonus) quality = 'red';
   let value = Number(item.value);
   if(!Number.isFinite(value) || value <= 0) value = qualityValue(quality, area);
-  if(area === 5) value = 64;
-  if(area === 3 && threeSelfBonus) value = 32;
   let customPriority = item.customPriority;
   if(customPriority === '' || customPriority === null || customPriority === undefined || !Number.isFinite(Number(customPriority))){
     customPriority = null;
@@ -371,7 +369,7 @@ function renderItemsTable(){
       <td><span class="shape-name">${escapeHtml(it.name)}</span><div class="hint">${area} 格</div></td>
       <td></td>
       <td>${qualitySelectHtml(idx, it.quality, 'lib', locked, area)}</td>
-      <td><input type="number" data-lib-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}" ${locked?'disabled':''}></td>
+      <td><input type="number" data-lib-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
       <td><input type="number" data-lib-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${locked || bonusKind(it)==='none'?'disabled':''}></td>
       <td><input type="number" data-add-count="${idx}" min="1" step="1" value="1"></td>
       <td><button class="compact" data-add="${idx}" ${it.enabled===false?'disabled':''}>添加</button></td>`;
@@ -423,7 +421,7 @@ function renderInventoryTable(){
       <td><input class="name-input" type="text" data-inv-k="name" data-i="${idx}" value="${escapeAttr(it.name)}"></td>
       <td></td>
       <td>${qualitySelectHtml(idx, it.quality, 'inv', locked, area)}</td>
-      <td><input type="number" data-inv-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}" ${locked?'disabled':''}></td>
+      <td><input type="number" data-inv-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
       <td>${bonusControlHtml(it, idx)}</td>
       <td><input type="number" data-inv-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${locked || bonusKind(it)==='none'?'disabled':''}></td>
       <td><input class="priority-input" type="number" data-inv-k="customPriority" data-i="${idx}" min="1" max="99" step="1" value="${it.customPriority ?? ''}" placeholder="默认" title="1 为最高，数字越小越优先；留空使用默认规则"></td>
@@ -451,7 +449,6 @@ function renderInventoryTable(){
         inventory[i].threeSelfBonus = e.target.checked;
         if(e.target.checked){
           inventory[i].quality = 'red';
-          inventory[i].value = 32;
           inventory[i].bonusRate = 20;
         }else{
           inventory[i].bonusRate = 0;
