@@ -15,8 +15,9 @@
   header{padding:20px 24px;background:#111827;color:white}
   header h1{margin:0 0 6px;font-size:22px;font-weight:700}
   header p{margin:0;color:#d1d5db}
-  main{display:grid;grid-template-columns:520px 1fr;gap:16px;padding:16px;max-width:1640px;margin:0 auto}
-  .card{background:var(--panel);border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.04);padding:14px;margin-bottom:14px;overflow-x:auto}
+  main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:16px;max-width:1760px;margin:0 auto}
+  main>section{min-width:0}
+  .card{background:var(--panel);border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 2px 8px rgba(15,23,42,.04);padding:14px;margin-bottom:14px;overflow:visible;min-width:0}
   h2{font-size:16px;margin:0 0 12px;border-left:4px solid var(--accent);padding-left:8px}
   h3{font-size:14px;margin:12px 0 8px;color:#374151}
   label{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 4px 0;color:#374151}
@@ -59,7 +60,52 @@
   .sw{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.2)}
   pre{white-space:pre-wrap;background:#0b1020;color:#e5e7eb;border-radius:10px;padding:10px;max-height:380px;overflow:auto}
   .empty{color:#6b7280;text-align:center;padding:16px;background:#f9fafb;border-radius:8px}
-  @media (max-width:1100px){main{grid-template-columns:1fr}.output-wrap{grid-template-columns:1fr}.card{overflow-x:auto}}
+  .table-scroll{width:100%;max-width:100%;overflow:auto;border:1px solid #e5e7eb;border-radius:9px;margin-top:8px;overscroll-behavior:contain;scrollbar-gutter:stable both-edges;background:#fff}
+  .table-scroll table{margin-top:0;min-width:780px}
+  .table-scroll thead th{position:sticky;top:0;z-index:4;box-shadow:0 1px 0 #e5e7eb}
+  .inventory-scroll table{min-width:960px}
+  .custom-item-panel{margin-top:12px;border:1px solid #dbe3ef;border-radius:10px;background:#f8fafc;overflow:hidden}
+  .custom-item-panel>summary{cursor:pointer;padding:10px 12px;font-weight:700;color:#334155;list-style:none;user-select:none}
+  .custom-item-panel>summary::-webkit-details-marker{display:none}
+  .custom-item-panel>summary::before{content:"＋";display:inline-block;width:1.3em;color:var(--accent)}
+  .custom-item-panel[open]>summary::before{content:"－"}
+  .custom-item-panel-body{padding:0 12px 12px}
+  .space-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:start}
+  .space-controls{min-width:0}
+  .result-main{display:grid;grid-template-columns:auto minmax(320px,1fr);gap:24px;align-items:start;min-width:0}
+  .result-grid-block{min-width:0}
+  .embedded-solver{min-width:0;padding:14px;border:1px solid #dbe3ef;border-radius:12px;background:#f8fafc}
+  .embedded-solver h3{margin:0 0 10px;padding-left:8px;border-left:4px solid var(--accent);font-size:15px;color:#1f2937}
+  .embedded-solver .hint{line-height:1.65}
+  @media (min-width:900px) and (orientation:landscape){
+    main{
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      grid-template-areas:
+        "space space"
+        "library inventory"
+        "result result"
+        "help help";
+      align-items:start;
+      gap:16px;
+      max-width:1680px;
+    }
+    main>section{display:contents}
+    .space-card{grid-area:space}
+    .library-card{grid-area:library;min-height:0}
+    .inventory-card{grid-area:inventory;min-height:0}
+    .result-card{grid-area:result}
+    .help-card{grid-area:help}
+    main .card{margin-bottom:0}
+    .library-scroll,.inventory-scroll{height:440px;max-height:440px;overflow:auto}
+    .output-wrap{grid-template-columns:minmax(660px,1.35fr) minmax(360px,.65fr)}
+    .result-card{min-height:360px}
+  }
+  @media (max-width:899px){
+    main{grid-template-columns:1fr}
+    .space-body,.output-wrap,.result-main{grid-template-columns:1fr}
+    .table-scroll{overflow-x:auto;overflow-y:visible}
+    .library-scroll,.inventory-scroll{max-height:none}
+  }
 </style>
 </head>
 <body>
@@ -69,20 +115,24 @@
 </header>
 <main>
   <section>
-    <div class="card">
+    <div class="card space-card">
       <h2>1. 当前背包空间</h2>
-      <div class="row">
-        <label>宽度 <input id="gridW" type="number" min="1" max="7" value="7"></label>
-        <label>高度 <input id="gridH" type="number" min="1" max="6" value="6"></label>
-        <button id="resizeBtn">应用尺寸</button>
-        <button id="fullBtn">全选空间</button>
-        <button id="clearSpaceBtn">清空空间</button>
+      <div class="space-body">
+        <div class="space-controls">
+          <div class="row">
+            <label>宽度 <input id="gridW" type="number" min="1" max="7" value="7"></label>
+            <label>高度 <input id="gridH" type="number" min="1" max="6" value="6"></label>
+            <button id="resizeBtn">应用尺寸</button>
+            <button id="fullBtn">全选空间</button>
+            <button id="clearSpaceBtn">清空空间</button>
+          </div>
+          <div class="hint">点击格子可切换“已解锁/未解锁”。最大支持 7×6。灰色格子不会参与计算。</div>
+        </div>
+        <div id="spaceGrid" class="grid"></div>
       </div>
-      <div class="hint">点击格子可切换“已解锁/未解锁”。最大支持 7×6。灰色格子不会参与计算。</div>
-      <div id="spaceGrid" class="grid" style="margin-top:10px"></div>
     </div>
 
-    <div class="card">
+    <div class="card library-card">
       <h2>2. 物品库</h2>
       <div class="row">
         <label><input id="allowRotate" type="checkbox"> 允许旋转</label>
@@ -90,63 +140,73 @@
         <button id="resetItemsBtn">恢复默认物品库</button>
       </div>
       <div class="hint">物品库提供形状与默认参数。添加到已有物品清单后，每个实际物品仍可单独改品质、基础属性、加成率和三格受加成开关。基础属性会按物品格数与品质自动给默认值。</div>
-      <table id="itemsTable">
-        <thead><tr><th>启用</th><th>物品</th><th>形状</th><th>品质</th><th>默认属性</th><th>加成率%</th><th>添加数量</th><th>操作</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div class="hint">横屏时物品库和已有物品清单左右并排，并分别在固定高度区域内滚动；自定义物品区域默认折叠。</div>
+      <div class="table-scroll library-scroll" aria-label="物品库列表">
+        <table id="itemsTable">
+          <thead><tr><th>启用</th><th>物品</th><th>形状</th><th>品质</th><th>默认属性</th><th>加成率%</th><th>添加数量</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-      <h3>添加自定义物品到物品库</h3>
-      <label>名称 <input id="customName" type="text" placeholder="例如：六格-Z型"></label>
-      <label>品质 <select id="customQuality"></select></label>
-      <label>基础属性 <input id="customValue" type="number" min="0" step="1" value="2"></label>
-      <label>加成率% <input id="customBonusRate" type="number" min="0" step="1" value="0"></label>
-      <textarea id="customPattern" placeholder="用 # 表示占用格，用 . 表示空格。例如：\n##.\n.##"></textarea>
-      <button id="addCustomBtn">添加到物品库</button>
-      <div class="hint">加成率含义取决于物品类型：单格为“给相邻物品提供的百分比”；绿/蓝/紫/金四格、红色五格以及开启受加成的红色三格，为“每相邻一个不同物品给自身增加的百分比”。红色四格默认加成率为0；所有红装的加成率都可手动修改，红色四格填写大于0的值后按自定义自身加成计算。</div>
+      <details class="custom-item-panel">
+        <summary>添加自定义物品到物品库</summary>
+        <div class="custom-item-panel-body">
+        <label>名称 <input id="customName" type="text" placeholder="例如：六格-Z型"></label>
+        <label>品质 <select id="customQuality"></select></label>
+        <label>基础属性 <input id="customValue" type="number" min="0" step="1" value="2"></label>
+        <label>加成率% <input id="customBonusRate" type="number" min="0" step="1" value="0"></label>
+        <textarea id="customPattern" placeholder="用 # 表示占用格，用 . 表示空格。例如：\n##.\n.##"></textarea>
+        <button id="addCustomBtn">添加到物品库</button>
+          <div class="hint">加成率含义取决于物品类型：单格为“给相邻物品提供的百分比”；绿/蓝/紫/金四格、红色五格以及开启受加成的红色三格，为“每相邻一个不同物品给自身增加的百分比”。红色四格默认加成率为0；所有红装的加成率都可手动修改，红色四格填写大于0的值后按自定义自身加成计算。</div>
+        </div>
+      </details>
     </div>
 
-    <div class="card">
+    <div class="card inventory-card">
       <h2>3. 已有物品清单</h2>
       <div class="row">
         <button id="renumberBtn">重新编号</button>
         <button id="clearInventoryBtn" class="danger">清空清单</button>
       </div>
       <div class="hint">每个条目代表一个实际拥有的物品。三格物品是否“自身因相邻受加成”在这里逐个开关。还可填写“邻接优先级”：1 为最高，数字越小越优先；留空则按默认规则计算。</div>
-      <table id="inventoryTable">
-        <thead><tr><th>编号</th><th>名称</th><th>形状</th><th>品质</th><th>基础属性</th><th>加成属性</th><th>加成率%</th><th>邻接优先级</th><th>操作</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div class="table-scroll inventory-scroll" aria-label="已有物品清单">
+        <table id="inventoryTable">
+          <thead><tr><th>编号</th><th>名称</th><th>形状</th><th>品质</th><th>基础属性</th><th>加成属性</th><th>加成率%</th><th>邻接优先级</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
   <section>
-    <div class="card">
-      <h2>4. 求解设置</h2>
-      <div class="row">
-        <label>最大搜索节点 <input id="nodeLimit" type="number" min="1000" step="1000" value="2500000"></label>
-        <label>最长搜索时间(ms) <input id="timeLimit" type="number" min="100" step="100" value="20000"></label>
-      </div>
-      <div class="row">
-        <label><input id="useAdjacencyBonus" type="checkbox"> 启用百分比相邻加成</label>
-      </div>
-      <div class="row">
-        <button id="solveBtn" class="primary">计算最优摆放解</button>
-        <button id="cancelSolveBtn" class="danger" disabled>停止计算</button>
-        <button id="exportBtn">导出结果 JSON</button>
-        <button id="saveBtn">保存当前配置</button>
-        <button id="loadBtn">读取配置</button>
-      </div>
-      <div class="hint">采用“两阶段求解”：当物品总占格不超过可用空间时，先单独寻找“全部物品都能放入”的可行解；一旦找到，后续只在完整装入方案中优化邻接，不会再返回漏件方案。若物品总面积超过空间，才搜索最大空间利用方案。手动优先级覆盖默认规则；未设置物品按红色五格 ＞ 金色四格 ＞ 开启自身加成的红色三格 ＞ 紫/蓝/绿色四格计算。后台线程运行，可随时停止。</div>
-    </div>
-
-    <div class="card">
-      <h2>5. 摆放结果</h2>
+    <div class="card result-card">
+      <h2>4. 求解与摆放结果</h2>
       <div class="output-wrap">
-        <div>
-          <div id="resultGrid" class="grid"></div>
-          <div id="legend" class="legend"></div>
+        <div class="result-main">
+          <div class="result-grid-block">
+            <div id="resultGrid" class="grid"></div>
+            <div id="legend" class="legend"></div>
+          </div>
+          <div class="embedded-solver">
+            <h3>求解设置</h3>
+            <div class="row">
+              <label>最大搜索节点 <input id="nodeLimit" type="number" min="1000" step="1000" value="2500000"></label>
+              <label>最长搜索时间(ms) <input id="timeLimit" type="number" min="100" step="100" value="20000"></label>
+            </div>
+            <div class="row">
+              <label><input id="useAdjacencyBonus" type="checkbox"> 启用百分比相邻加成</label>
+            </div>
+            <div class="row">
+              <button id="solveBtn" class="primary">计算最优摆放解</button>
+              <button id="cancelSolveBtn" class="danger" disabled>停止计算</button>
+              <button id="exportBtn">导出结果 JSON</button>
+              <button id="saveBtn">保存当前配置</button>
+              <button id="loadBtn">读取配置</button>
+            </div>
+            <div class="hint">采用“两阶段求解”：物品总占格不超过可用空间时，先寻找全部装入的可行解，再在完整装入方案中优化邻接；物品总面积超过空间时，才搜索最大空间利用方案。手动优先级覆盖默认规则，后台线程运行，可随时停止。</div>
+          </div>
         </div>
-        <div>
+        <div class="result-summary">
           <div class="stats">
             <div class="stat">总评分<b id="statScore">-</b></div>
             <div class="stat">基础属性<b id="statBase">-</b></div>
@@ -162,8 +222,8 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>6. 使用说明</h2>
+    <div class="card help-card">
+      <h2>5. 使用说明</h2>
       <ol>
         <li>先设置背包宽度、高度，并点击空间格子标记已解锁区域。</li>
         <li>从物品库添加物品到已有物品清单；真正参与计算的是已有物品清单。</li>
