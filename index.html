@@ -102,7 +102,7 @@
       <label>加成率% <input id="customBonusRate" type="number" min="0" step="1" value="0"></label>
       <textarea id="customPattern" placeholder="用 # 表示占用格，用 . 表示空格。例如：\n##.\n.##"></textarea>
       <button id="addCustomBtn">添加到物品库</button>
-      <div class="hint">加成率含义取决于物品类型：单格为“给相邻物品提供的百分比”；绿/蓝/紫/金四格、红色五格以及开启受加成的红色三格，为“每相邻一个不同物品给自身增加的百分比”。红色四格没有自身邻接加成。</div>
+      <div class="hint">加成率含义取决于物品类型：单格为“给相邻物品提供的百分比”；绿/蓝/紫/金四格、红色五格以及开启受加成的红色三格，为“每相邻一个不同物品给自身增加的百分比”。红色四格默认加成率为0；所有红装的加成率都可手动修改，红色四格填写大于0的值后按自定义自身加成计算。</div>
     </div>
 
     <div class="card">
@@ -170,10 +170,10 @@
         <li>在已有物品清单中逐个修改品质、基础属性、加成率；三格物品可逐个勾选“自身受加成”。</li>
         <li>需要指定某件物品优先获得更多邻居时，在“邻接优先级”中填写数字：1 最高，数字越小越优先；留空使用默认规则。</li>
         <li>单格物品的加成率表示：它会给每个相邻物品提供“该相邻物品基础属性 × 单格加成率”的加成。</li>
-        <li>绿、蓝、紫、金品质的四格物品以及红色五格物品：每相邻一个不同物品，就给自身增加“自身基础属性 × 加成率”的加成；红色四格物品没有这项自身邻接加成。</li>
+        <li>绿、蓝、紫、金品质的四格物品以及红色五格物品：每相邻一个不同物品，就给自身增加“自身基础属性 × 加成率”的加成；红色四格默认加成率为0；所有红装均可自定义加成率，红色四格填写大于0的值后按自定义自身加成计算。</li>
         <li>开启“自身受加成”的红色三格物品按自身邻接规则计算；未开启的三格物品不因相邻物品给自身加成。</li>
       </ol>
-      <p class="hint">品质基础属性按物品格数区分：单格 2/4/8/16（无红），两格 3/6/12/24（无红），三格 4/8/16/32/32，四格 5/10/20/40/56，五格仅红色 64。重点邻接按“相邻的不同物品数量”计算，同一物品即使接触多条边也只计一次。自身邻接优先级为红色五格、金色四格、开启自身加成的红色三格、紫/蓝/绿色四格。红色四格虽然基础值较高，但没有自身邻接加成，不会为了增加其普通邻居数量而占用重点位置。</p>
+      <p class="hint">品质基础属性按物品格数区分：单格 2/4/8/16（无红），两格 3/6/12/24（无红），三格 4/8/16/32/32，四格 5/10/20/40/56，五格仅红色 64。重点邻接按“相邻的不同物品数量”计算，同一物品即使接触多条边也只计一次。自身邻接优先级为红色五格、金色四格、开启自身加成的红色三格、紫/蓝/绿色四格。红色四格默认加成率为0且不进入默认重点邻接层级；填写自定义加成率后会参与百分比加成计算，如需优先获得邻居可另设手动邻接优先级。</p>
     </div>
   </section>
 </main>
@@ -208,7 +208,7 @@ const AREA_VALUE_BY_QUALITY = {
 const SINGLE_RATE_BY_QUALITY = {green:5, blue:8, purple:12, gold:16};
 // 自身受加成物品的邻接优先级。索引越小，比较优先级越高。
 // 用户给出的核心顺序：红色五格最高；金色四格 > 红色三格 > 紫色及以下四格。
-// 红色四格没有自身邻接加成，因此不进入自身邻接优先级。
+// 红色四格默认加成率为 0；即使设置自定义加成率，也不自动进入默认邻接优先级，可用手动优先级控制。
 const SELF_PRIORITY_TIERS = [
   {id:'five_red', label:'红色五格'},
   {id:'four_gold', label:'金色四格'},
@@ -288,10 +288,10 @@ function normalizeItemRecord(item, keepManualRate=false){
   }
   let bonusRate = Number(item.bonusRate);
   if(!keepManualRate || !Number.isFinite(bonusRate) || bonusRate < 0) bonusRate = defaultBonusRate(area, quality, threeSelfBonus);
-  if(area === 5) bonusRate = 40;
-  if(area === 3 && threeSelfBonus) bonusRate = 20;
-  if(area === 4 && quality === 'red') bonusRate = 0;
-  if(area !== 1 && area !== 4 && area !== 5 && !(area === 3 && threeSelfBonus)) bonusRate = 0;
+  // 红色装备保留用户填写的加成率，不再强制改回 0%、20% 或 40%。
+  // 红色三格是否生效仍由“自身受加成”开关控制；红色四格默认 0%，填写大于 0 的值时按自定义自身加成计算。
+  const canStoreCustomRedRate = quality === 'red' && (area === 3 || area === 4 || area === 5);
+  if(!canStoreCustomRedRate && area !== 1 && area !== 4 && area !== 5 && !(area === 3 && threeSelfBonus)) bonusRate = 0;
   return {...item, cells:normalizeCells(item.cells || []), quality, value, bonusRate, threeSelfBonus, customPriority, enabled:item.enabled !== false};
 }
 function init(){
@@ -382,7 +382,7 @@ function renderItemsTable(){
       <td></td>
       <td>${qualitySelectHtml(idx, it.quality, 'lib', locked, area)}</td>
       <td><input type="number" data-lib-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
-      <td><input type="number" data-lib-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${locked || bonusKind(it)==='none'?'disabled':''}></td>
+      <td><input type="number" data-lib-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${bonusKind(it)==='none' && it.quality !== 'red'?'disabled':''}></td>
       <td><input type="number" data-add-count="${idx}" min="1" step="1" value="1"></td>
       <td><button class="compact" data-add="${idx}" ${it.enabled===false?'disabled':''}>添加</button></td>`;
     tr.children[2].appendChild(makeMiniPreview(it.cells));
@@ -435,7 +435,7 @@ function renderInventoryTable(){
       <td>${qualitySelectHtml(idx, it.quality, 'inv', locked, area)}</td>
       <td><input type="number" data-inv-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
       <td>${bonusControlHtml(it, idx)}</td>
-      <td><input type="number" data-inv-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${locked || bonusKind(it)==='none'?'disabled':''}></td>
+      <td><input type="number" data-inv-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${bonusKind(it)==='none' && it.quality !== 'red'?'disabled':''}></td>
       <td><input class="priority-input" type="number" data-inv-k="customPriority" data-i="${idx}" min="1" max="99" step="1" value="${it.customPriority ?? ''}" placeholder="默认" title="1 为最高，数字越小越优先；留空使用默认规则"></td>
       <td><button class="danger compact" data-del-inv="${idx}">删除</button></td>`;
     tr.children[2].appendChild(makeMiniPreview(it.cells));
@@ -461,10 +461,10 @@ function renderInventoryTable(){
         inventory[i].threeSelfBonus = e.target.checked;
         if(e.target.checked){
           inventory[i].quality = 'red';
-          inventory[i].bonusRate = 20;
-        }else{
-          inventory[i].bonusRate = 0;
+          const currentRate = Number(inventory[i].bonusRate);
+          if(!Number.isFinite(currentRate) || currentRate <= 0) inventory[i].bonusRate = 20;
         }
+        // 关闭开关时保留已填写的红装加成率，之后重新开启无需再次输入。
       }
       inventory[i] = normalizeItemRecord(inventory[i], true);
       renderInventoryTable();
@@ -484,16 +484,17 @@ function renderInventoryTable(){
 function bonusKind(it){
   const area = Number(it && it.area) || (it && it.cells ? it.cells.length : 0);
   const quality = (it && it.quality) || 'green';
-  // 固定规则优先于旧配置中可能残留的 bonusKind，确保红色四格永远没有自身邻接加成。
-  if(area === 4 && quality === 'red') return 'none';
+  const rate = Math.max(0, Number(it && it.bonusRate) || 0);
   if(area === 1) return 'provider';
+  // 红色四格默认加成率为 0；用户手动填写大于 0 的值时，按自定义自身加成参与计算。
+  if(area === 4 && quality === 'red') return rate > 0 ? 'self' : 'none';
   if((area === 4 && quality !== 'red') || area === 5 || (area === 3 && it.threeSelfBonus)) return 'self';
   return 'none';
 }
 function bonusControlHtml(it, idx){
   const area = it.cells.length;
   if(area === 1) return '<span class="pill green">单格：给相邻物品</span>';
-  if(area === 4 && it.quality === 'red') return '<span class="pill gray">红色四格：无自身邻接加成</span>';
+  if(area === 4 && it.quality === 'red') return Number(it.bonusRate)>0 ? '<span class="pill">红色四格：自定义自身加成</span>' : '<span class="pill gray">红色四格：默认无加成，可自定义</span>';
   if(area === 4) return '<span class="pill">四格：自身受加成</span>';
   if(area === 5) return '<span class="pill">五格：红色自身受加成</span>';
   if(area === 3) return `<label style="margin:0"><input type="checkbox" data-inv-k="threeSelfBonus" data-i="${idx}" ${it.threeSelfBonus?'checked':''}> 自身受加成</label>`;
