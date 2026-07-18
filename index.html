@@ -180,7 +180,7 @@
 
   <section>
     <div class="card result-card">
-      <h2>4. 求解与摆放结果</h2>
+      <h2>4. 自动搜索与当前最佳摆放结果</h2>
       <div class="output-wrap">
         <div class="result-main">
           <div class="result-grid-block">
@@ -197,13 +197,13 @@
               <label><input id="useAdjacencyBonus" type="checkbox" checked> 启用百分比相邻加成</label>
             </div>
             <div class="row">
-              <button id="solveBtn" class="primary">计算最优摆放解</button>
+              <button id="solveBtn" class="primary">搜索更优摆放解</button>
               <button id="cancelSolveBtn" class="danger" disabled>停止计算</button>
               <button id="exportBtn">导出结果 JSON</button>
               <button id="saveBtn">保存当前配置</button>
               <button id="loadBtn">读取配置</button>
             </div>
-            <div class="hint">采用“两阶段 + 两层分配”求解：先尽力确认全部物品可同时装入；在完整装入前提下，依次最大化实际总属性、手动优先物品邻接、默认重点物品邻接和总邻接数量。同形状物品先搜索几何布局，再按实际属性与加成分配具体编号。若确认无法完整装入，则对可行子集沿用相同评分顺序。后台线程运行，可随时停止。</div>
+            <div class="hint">采用有限时间的“多格物品先布局 + 单格物品延后填充 + 多起点改进”搜索：先确认完整装入，再依次优化实际总属性、手动优先物品邻接、默认重点物品邻接和总邻接数量。单格物品不会逐件参与几何回溯，而是在多格布局形成后按真实加成价值分配到剩余位置，从而减少搜索量并避免仅因紧凑度把大量单格物品堆在一起。搜索从已有物品清单自动生成初始布局；达到时间或节点上限不代表已证明全局最优。</div>
           </div>
         </div>
         <div class="result-summary">
@@ -286,6 +286,8 @@ let inventory = [];
 let nextItemNo = 1;
 let lastResult = null;
 let solverWorker = null;
+let solverStatusTimer = null;
+let solverStatusState = null;
 
 const DEFAULT_ITEMS = [
   {id:'one-1', name:'单格', cells:[[0,0]], quality:'green', enabled:true},
@@ -368,18 +370,50 @@ function init(){
 
 function bindEvents(){
   document.getElementById('resizeBtn').addEventListener('click', applySize);
-  document.getElementById('fullBtn').addEventListener('click', ()=>{ for(let r=0;r<H;r++) for(let c=0;c<W;c++) active[r][c]=true; renderSpaceGrid(); renderResultGrid(null); });
-  document.getElementById('clearSpaceBtn').addEventListener('click', ()=>{ for(let r=0;r<H;r++) for(let c=0;c<W;c++) active[r][c]=false; renderSpaceGrid(); renderResultGrid(null); });
-  document.getElementById('resetItemsBtn').addEventListener('click', ()=>{ itemDefs = cloneItems(DEFAULT_ITEMS); renderItemsTable(); });
+  document.getElementById('fullBtn').addEventListener('click', ()=>{
+    for(let r=0;r<H;r++) for(let c=0;c<W;c++) active[r][c]=true;
+    lastResult = null;
+    renderSpaceGrid();
+    renderResultGrid(null);
+  });
+  document.getElementById('clearSpaceBtn').addEventListener('click', ()=>{
+    for(let r=0;r<H;r++) for(let c=0;c<W;c++) active[r][c]=false;
+    lastResult = null;
+    renderSpaceGrid();
+    renderResultGrid(null);
+  });
+  document.getElementById('resetItemsBtn').addEventListener('click', ()=>{
+    itemDefs = cloneItems(DEFAULT_ITEMS);
+    renderItemsTable();
+  });
   document.getElementById('addCustomBtn').addEventListener('click', addCustomItem);
   document.getElementById('renumberBtn').addEventListener('click', renumberInventory);
-  document.getElementById('clearInventoryBtn').addEventListener('click', ()=>{ if(confirm('确定清空已有物品清单？')){ inventory = []; nextItemNo = 1; renderInventoryTable(); renderResultGrid(null); } });
+  document.getElementById('clearInventoryBtn').addEventListener('click', ()=>{
+    if(confirm('确定清空已有物品清单？')){
+      inventory = [];
+      nextItemNo = 1;
+      lastResult = null;
+      renderInventoryTable();
+      renderResultGrid(null);
+    }
+  });
   document.getElementById('solveBtn').addEventListener('click', solveAndRender);
   document.getElementById('cancelSolveBtn').addEventListener('click', cancelSolve);
   document.getElementById('exportBtn').addEventListener('click', exportResult);
   document.getElementById('saveBtn').addEventListener('click', saveConfig);
   document.getElementById('loadBtn').addEventListener('click', loadConfig);
-  document.getElementById('useAdjacencyBonus').addEventListener('change', ()=>{ renderResultGrid(null); });
+  document.getElementById('useAdjacencyBonus').addEventListener('change', ()=>{
+    lastResult = null;
+    renderResultGrid(null);
+  });
+  document.getElementById('allowRotate').addEventListener('change', ()=>{
+    lastResult = null;
+    renderResultGrid(null);
+  });
+  document.getElementById('allowMirror').addEventListener('change', ()=>{
+    lastResult = null;
+    renderResultGrid(null);
+  });
   document.getElementById('customQuality').addEventListener('change', e=>{
     const q = e.target.value;
     const cells = parsePattern(document.getElementById('customPattern').value || '#');
@@ -410,7 +444,7 @@ function applySize(){
   const old = active;
   W = newW; H = newH;
   active = Array.from({length:H}, (_,r)=>Array.from({length:W},(_,c)=> old[r] && old[r][c] !== undefined ? old[r][c] : true));
-  renderSpaceGrid(); renderResultGrid(null);
+  lastResult = null; renderSpaceGrid(); renderResultGrid(null);
 }
 
 function renderSpaceGrid(){
@@ -423,7 +457,7 @@ function renderSpaceGrid(){
       cell.className = 'cell' + (active[r][c] ? '' : ' inactive');
       cell.textContent = active[r][c] ? '' : '×';
       cell.title = `行 ${r+1}, 列 ${c+1}`;
-      cell.addEventListener('click', ()=>{ active[r][c] = !active[r][c]; renderSpaceGrid(); renderResultGrid(null); });
+      cell.addEventListener('click', ()=>{ active[r][c] = !active[r][c]; lastResult = null; renderSpaceGrid(); renderResultGrid(null); });
       el.appendChild(cell);
     }
   }
@@ -530,12 +564,14 @@ function renderInventoryTable(){
       inventory[i] = normalizeItemRecord(inventory[i], true);
       renderInventoryTable();
       renderResultGrid(null);
+      lastResult = null;
     });
   });
   tbody.querySelectorAll('button[data-del-inv]').forEach(btn=>{
     btn.addEventListener('click', e=>{
       const i = Number(e.currentTarget.dataset.delInv);
       inventory.splice(i,1);
+      lastResult = null;
       renderInventoryTable();
       renderResultGrid(null);
     });
@@ -628,6 +664,7 @@ function addToInventory(defIndex, count){
   }
   renderInventoryTable();
   renderResultGrid(null);
+  lastResult = null;
 }
 
 function renumberInventory(){
@@ -635,6 +672,7 @@ function renumberInventory(){
   nextItemNo = inventory.length + 1;
   renderInventoryTable();
   renderResultGrid(null);
+  lastResult = null;
 }
 
 function makeMiniPreview(cells){
@@ -839,6 +877,7 @@ function potentialByItem(items){
   return arr;
 }
 
+
 function solverWorkerMain(){
   'use strict';
   self.onmessage = function(ev){
@@ -855,7 +894,23 @@ function solverWorkerMain(){
     const skippedCount = Math.max(0, Number(data.skippedCount)||0);
     const started = performance.now();
     const hardDeadline = started + timeLimit;
+    let rngState = (0x9e3779b9 ^ itemsHashSeed(data.items || []) ^ activeCells ^ nodeLimit) >>> 0;
+    function itemsHashSeed(rawItems){
+      let h=2166136261>>>0;
+      for(const t of rawItems){
+        const text=`${t.no}|${t.area}|${t.value}|${t.bonusRate}|${t.bonusKind}|${t.customPriority ?? ''}`;
+        for(let i=0;i<text.length;i++){ h^=text.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+      }
+      return h>>>0;
+    }
+    function rand(){ rngState ^= rngState<<13; rngState ^= rngState>>>17; rngState ^= rngState<<5; return (rngState>>>0)/4294967296; }
+    function shuffled(arr){
+      const out=arr.slice();
+      for(let i=out.length-1;i>0;i--){ const j=Math.floor(rand()*(i+1)); [out[i],out[j]]=[out[j],out[i]]; }
+      return out;
+    }
     let nodes = 0;
+    let assignmentChecks = 0;
     let lastProgress = started;
     let currentStage = '准备搜索';
 
@@ -1013,7 +1068,19 @@ function solverWorkerMain(){
     }
     const fullGroups = buildGroups(geometryGroupKey,'geometry');
     const partialGroups = buildGroups(detailedGroupKey,'detailed');
-    let groups = fullGroups;
+    // 完整装入搜索时，单格物品不再逐件参与几何回溯。
+    // 先搜索多格物品布局，再把单格物品按真实加成价值分配到剩余格子，可显著减少组合数。
+    const singletonItems = items.filter(t=>t.area===1);
+    const singletonCount = singletonItems.length;
+    const fullCoreGroups = fullGroups.filter(g=>g.area>1);
+    const fullCoreItemCount = fullCoreGroups.reduce((sum,g)=>sum+g.items.length,0);
+    const fullCoreArea = fullCoreGroups.reduce((sum,g)=>sum+g.items.length*g.area,0);
+    const itemPlacementLookup = items.map(t=>new Map(t.placements.map(p=>[p.mask.toString(),p])));
+    const itemAssignmentClass = items.map(t=>{
+      const masks=t.placements.map(p=>p.mask.toString()).sort().join(',');
+      return `${t.area}|${masks}`;
+    });
+    let groups = fullCoreGroups;
     let geometryMode = true;
 
     const searchableArea = items.reduce((s,x)=>s+x.area,0);
@@ -1032,6 +1099,8 @@ function solverWorkerMain(){
       manualPriorityVector:emptyManualVector(),defaultPriorityVector:emptyDefaultVector(),
       placements:[],occupied:0n,bonusEvents:[],priorityLinks:[]
     };
+    const fullGroupByUid = new Map();
+    for(const g of fullGroups) for(const item of g.items) fullGroupByUid.set(String(item.uid),g);
 
     // 严格字典序：完整装入 > 实际总属性 > 手动优先级 > 默认优先级 > 总邻接数量。
     // 后续字段只用于完全平局时保持结果稳定，不改变上述优化顺序。
@@ -1162,14 +1231,185 @@ function solverWorkerMain(){
       return currentEval;
     }
     function evaluateGeometry(geometryPlacements){
-      // 百分比关闭时，属性总和与摆放位置无关，直接按编号稳定分配。
       if(!useBonus) return evaluateConcrete(assignmentSeed(geometryPlacements,'number'));
-      // 百分比开启时，尝试两种初始分配，并对每个同形状组做条件精确排列/交换优化。
       const a=improveAssignments(assignmentSeed(geometryPlacements,'number'),geometryPlacements);
       const b=improveAssignments(assignmentSeed(geometryPlacements,'influence'),geometryPlacements);
       return compareEvaluationObjects(b,a)>0?b:a;
     }
+    function placementForItemAtMask(item,mask){
+      const template=itemPlacementLookup[item.itemIndex].get(mask.toString());
+      if(!template) return null;
+      return instantiate(template,item,fullGroupByUid.get(String(item.uid)) || null);
+    }
+    function activeFreeCells(occupied){
+      const out=[];
+      for(let r=0;r<H;r++) for(let c=0;c<W;c++){
+        const m=bit(r,c);
+        if((activeMask&m)!==0n && (occupied&m)===0n) out.push({r,c,mask:m});
+      }
+      return out;
+    }
+    function cellTouchesPlacement(cell,p){
+      return (makeNeighborMask([[cell.r,cell.c]]) & p.mask)!==0n;
+    }
+    // 仅作为搜索顺序启发式：估计剩余单格若靠近高价值多格物品可获得的加成机会。
+    // 最终结果仍完全由真实总属性比较器决定，不会硬性禁止单格相邻。
+    function singletonOpportunityProxy(occupied,placed){
+      if(!useBonus || singletonCount===0) return 0;
+      const free=activeFreeCells(occupied);
+      if(free.length<singletonCount) return -1e30;
+      const guides=singletonItems.slice().sort((a,b)=>guideInfluence(b)-guideInfluence(a)||b.value-a.value||a.no-b.no).slice(0,Math.min(4,singletonCount));
+      const scores=[];
+      for(const cell of free){
+        let bestCell=0;
+        for(const it of guides){
+          const p=placementForItemAtMask(it,cell.mask);
+          if(!p) continue;
+          let score=0;
+          for(const old of placed){
+            if(old.area===1 || !areAdjacent(p,old)) continue;
+            score += potentialPairBonus(p,old);
+          }
+          if(score>bestCell) bestCell=score;
+        }
+        scores.push(bestCell);
+      }
+      scores.sort((a,b)=>b-a);
+      return scores.slice(0,singletonCount).reduce((a,b)=>a+b,0);
+    }
+    function singletonCellSets(occupied,multiConcrete){
+      const free=activeFreeCells(occupied);
+      if(free.length<singletonCount) return [];
+      if(singletonCount===0) return [[]];
+      if(free.length===singletonCount) return [free];
+      const sets=[];
+      const keyOf=set=>set.map(x=>x.mask.toString()).sort().join(',');
+      const seen=new Set();
+      function add(set){ const k=keyOf(set); if(!seen.has(k)){ seen.add(k); sets.push(set.slice()); } }
+      function cellTargetScore(cell){
+        let best=0;
+        for(const it of singletonItems){
+          const p=placementForItemAtMask(it,cell.mask); if(!p) continue;
+          let score=0;
+          for(const old of multiConcrete) if(areAdjacent(p,old)) score += potentialPairBonus(p,old);
+          if(score>best) best=score;
+        }
+        return best;
+      }
+      const ranked=free.map(cell=>({cell,score:cellTargetScore(cell)})).sort((a,b)=>b.score-a.score || (a.cell.mask<b.cell.mask?-1:1));
+      add(ranked.slice(0,singletonCount).map(x=>x.cell));
+      const spread=[];
+      const remain=free.slice();
+      while(spread.length<singletonCount && remain.length){
+        let bi=0,bs=-Infinity;
+        for(let i=0;i<remain.length;i++){
+          const cell=remain[i];
+          const nearSingles=spread.reduce((n,x)=>n+(Math.abs(x.r-cell.r)+Math.abs(x.c-cell.c)===1?1:0),0);
+          const sc=cellTargetScore(cell)-nearSingles*Math.max(1,ranked[0]?.score||1)*0.15;
+          if(sc>bs){bs=sc;bi=i;}
+        }
+        spread.push(remain.splice(bi,1)[0]);
+      }
+      add(spread);
+      for(let k=0;k<4;k++) add(shuffled(free).slice(0,singletonCount));
+      return sets;
+    }
+    function assignSingletons(baseConcrete,cells,mode){
+      const placed=baseConcrete.slice();
+      let remainingItems=mode==='random'?shuffled(singletonItems):singletonItems.slice().sort((a,b)=>guideInfluence(b)-guideInfluence(a)||b.value-a.value||a.no-b.no);
+      let remainingCells=mode==='random'?shuffled(cells):cells.slice();
+      if(mode==='number'){
+        remainingItems=singletonItems.slice().sort((a,b)=>a.no-b.no);
+        remainingCells=cells.slice().sort((a,b)=>a.mask<b.mask?-1:1);
+      }
+      while(remainingItems.length){
+        let bestPair=null;
+        for(let ii=0;ii<remainingItems.length;ii++) for(let ci=0;ci<remainingCells.length;ci++){
+          const item=remainingItems[ii], cell=remainingCells[ci];
+          const p=placementForItemAtMask(item,cell.mask); if(!p) continue;
+          const bg=useBonus?adjacencyGainFor(p,placed):{bonus:0,events:[]};
+          const pg=priorityGainFor(p,placed);
+          let multiBonus=0, singleBonus=0, multiNeighbors=0;
+          for(const old of placed){
+            if(!areAdjacent(p,old)) continue;
+            const b=potentialPairBonus(p,old);
+            if(old.area===1) singleBonus+=b; else {multiBonus+=b; multiNeighbors++;}
+          }
+          let primary=bg.bonus;
+          if(mode==='target') primary=multiBonus+singleBonus*0.15;
+          if(mode==='spread') primary=bg.bonus-singleBonus*0.20+multiNeighbors*0.0001;
+          const cand={ii,ci,p,primary,total:bg.bonus,priority:pg.weighted,multiBonus,multiNeighbors};
+          if(!bestPair || cand.primary>bestPair.primary+EPS || (Math.abs(cand.primary-bestPair.primary)<=EPS && cand.total>bestPair.total+EPS) || (Math.abs(cand.primary-bestPair.primary)<=EPS && Math.abs(cand.total-bestPair.total)<=EPS && cand.priority>bestPair.priority) || (Math.abs(cand.primary-bestPair.primary)<=EPS && Math.abs(cand.total-bestPair.total)<=EPS && cand.priority===bestPair.priority && cand.multiBonus>bestPair.multiBonus+EPS)) bestPair=cand;
+        }
+        if(!bestPair) return null;
+        placed.push(bestPair.p);
+        remainingItems.splice(bestPair.ii,1);
+        remainingCells.splice(bestPair.ci,1);
+      }
+      return placed;
+    }
+    function improveConcreteAssignments(seed,maxSteps){
+      let current=seed.slice();
+      let currentEval=evaluateConcrete(current);
+      const classIndices=new Map();
+      for(let i=0;i<current.length;i++){
+        const key=itemAssignmentClass[current[i].itemIndex];
+        if(!classIndices.has(key)) classIndices.set(key,[]);
+        classIndices.get(key).push(i);
+      }
+      for(let step=0;step<maxSteps && performance.now()<hardDeadline;step++){
+        let bestEval=currentEval, bestCandidate=null;
+        for(const indices of classIndices.values()){
+          if(indices.length<2) continue;
+          for(let ai=0;ai<indices.length;ai++) for(let bi=ai+1;bi<indices.length;bi++){
+            assignmentChecks++;
+            const ia=indices[ai], ib=indices[bi];
+            const itemA=items[current[ia].itemIndex], itemB=items[current[ib].itemIndex];
+            const pa=placementForItemAtMask(itemB,current[ia].mask);
+            const pb=placementForItemAtMask(itemA,current[ib].mask);
+            if(!pa || !pb) continue;
+            const candidate=current.slice(); candidate[ia]=pa; candidate[ib]=pb;
+            const evc=evaluateConcrete(candidate);
+            if(compareEvaluationObjects(evc,bestEval)>0){ bestEval=evc; bestCandidate=candidate; }
+          }
+        }
+        if(!bestCandidate) break;
+        current=bestCandidate; currentEval=bestEval;
+      }
+      return currentEval;
+    }
+    function completeGeometryWithSingletons(multiGeometryPlacements,intensive=false){
+      let occupied=0n;
+      for(const p of multiGeometryPlacements) occupied|=p.mask;
+      const multiSeeds=[];
+      if(multiGeometryPlacements.length){
+        multiSeeds.push(assignmentSeed(multiGeometryPlacements,'number'));
+        multiSeeds.push(assignmentSeed(multiGeometryPlacements,'influence'));
+      }else multiSeeds.push([]);
+      let bestLocal=null;
+      for(const multiConcrete of multiSeeds){
+        const cellSets=singletonCellSets(occupied,multiConcrete);
+        for(const cells of cellSets){
+          const modes=useBonus?['greedy','target','spread']:['number'];
+          for(const mode of modes){
+            const concrete=assignSingletons(multiConcrete,cells,mode);
+            if(!concrete) continue;
+            const evc=evaluateConcrete(concrete);
+            if(!bestLocal || compareEvaluationObjects(evc,bestLocal)>0) bestLocal=evc;
+          }
+          if(intensive && useBonus){
+            const concrete=assignSingletons(multiConcrete,cells,'random');
+            if(concrete){ const evc=evaluateConcrete(concrete); if(!bestLocal || compareEvaluationObjects(evc,bestLocal)>0) bestLocal=evc; }
+          }
+        }
+      }
+      if(!bestLocal) return evaluateConcrete([]);
+      const closeToBest = best.totalScore<0 || bestLocal.complete!==best.complete || bestLocal.totalScore>=best.totalScore-Math.max(1,Math.abs(best.totalScore)*0.015);
+      if(useBonus && (intensive || closeToBest)) bestLocal=improveConcreteAssignments(bestLocal.placements,intensive?28:8);
+      return bestLocal;
+    }
     function evaluateComplete(placements){
+      if(geometryMode && singletonCount>0 && placements.length===fullCoreItemCount) return completeGeometryWithSingletons(placements,false);
       if(geometryMode && placements.length && placements.every(p=>p.geometryGroupIndex!==null && p.geometryGroupIndex!==undefined)) return evaluateGeometry(placements);
       return evaluateConcrete(placements);
     }
@@ -1234,11 +1474,11 @@ function solverWorkerMain(){
     }
 
     // 完整装入阶段的必要条件剪枝：每个剩余物品必须至少有一个合法位置；无剩余空格时，各连通空区面积必须能由剩余物品面积组合出来。
-    function fullPackingPrune(occupied,rem,lastIdx,remArea){
+    function fullPackingPrune(occupied,rem,lastIdx,remArea,deferredSingles=0){
       const freeCount=activeCells-countBits(occupied & activeMask);
-      if(freeCount<remArea) return false;
+      if(freeCount<remArea+deferredSingles) return false;
       const comps=freeComponents(occupied);
-      const noSlack = freeCount===remArea;
+      const noSlack = deferredSingles===0 && freeCount===remArea;
       const forced=Array(comps.length).fill(0);
       const remainingCopies=[];
       for(let gi=0;gi<groups.length;gi++){
@@ -1305,7 +1545,8 @@ function solverWorkerMain(){
         for(let pi=start;pi<groups[gi].templates.length;pi++) if((groups[gi].templates[pi].mask&nextOcc)===0n) count++;
         future += Math.min(count,need*8);
       }
-      return future*100 + adjacent*20;
+      const opp=singletonOpportunityProxy(nextOcc,placed.concat(template));
+      return future*100 + Math.max(0,opp)*0.5 + adjacent*5;
     }
 
     let fullPackingAttempted = skippedCount===0 && totalArea<=activeCells;
@@ -1325,10 +1566,14 @@ function solverWorkerMain(){
       const memoCap=180000;
       function rec(occupied,remArea,depth){
         nodes++;
-        if((nodes&2047)===0) reportProgress(false,{fullPackingFound:false});
+        if((nodes&255)===0) reportProgress(false,{fullPackingFound:false});
         if(hitBudget(deadline,nodeCap)){ fullSearchCutoff=true; return false; }
-        if(depth===searchableItems){ fullSeed=placed.slice(); return true; }
-        if(!fullPackingPrune(occupied,rem,lastIdx,remArea)) return false;
+        if(depth===fullCoreItemCount){
+          const evc=completeGeometryWithSingletons(placed,false);
+          if(evc.complete){ fullSeed=placed.slice(); accept(evc); return true; }
+          return false;
+        }
+        if(!fullPackingPrune(occupied,rem,lastIdx,remArea,singletonCount)) return false;
         const key=occupied.toString(36)+'|'+rem.join(',')+'|'+lastIdx.join(',');
         if(memo.has(key)) return false;
         const sel=selectGroup(rem,lastIdx,occupied);
@@ -1352,42 +1597,87 @@ function solverWorkerMain(){
         if(!fullSearchCutoff && memo.size<memoCap) memo.add(key);
         return false;
       }
-      return rec(0n,searchableArea,0);
+      return rec(0n,fullCoreArea,0);
     }
 
     function localImprove(seed,deadline){
-      currentStage='阶段2：在完整装入前提下优化实际总属性与邻接';
+      currentStage='阶段2：单格感知的完整布局局部改进';
       let current=seed.slice();
-      let curEval=evaluateComplete(current);
-      current=curEval.placements.slice();
+      let curEval=completeGeometryWithSingletons(current,true);
       accept(curEval);
       let changed=true, passes=0;
-      while(changed && performance.now()<deadline && nodes<nodeLimit && passes<4){
+      while(changed && performance.now()<deadline && nodes<nodeLimit && passes<3){
         changed=false; passes++;
         for(let i=0;i<current.length;i++){
           if(performance.now()>=deadline || nodes>=nodeLimit) break;
           const gi=current[i].geometryGroupIndex;
           const g=(gi!==null && gi!==undefined)?fullGroups[gi]:null;
-          const item=items[current[i].itemIndex];
-          const templates=g?g.templates:item.placements;
+          if(!g || g.area===1) continue;
           let occupiedOthers=0n;
           for(let j=0;j<current.length;j++) if(j!==i) occupiedOthers|=current[j].mask;
           let bestMove=null, bestMoveEval=curEval;
-          for(const template of templates){
+          for(const template of g.templates){
             nodes++;
             if((template.mask&occupiedOthers)!==0n) continue;
             const candidate=current.slice();
-            candidate[i]=g?instantiate(template,g.guideItem,g):instantiate(template,item);
-            const evc=evaluateComplete(candidate);
+            candidate[i]=instantiate(template,g.guideItem,g);
+            const evc=completeGeometryWithSingletons(candidate,false);
             if(compareEvaluations(evc,bestMoveEval)>0){ bestMoveEval=evc; bestMove=candidate[i]; }
           }
-          if(bestMove){ current[i]=bestMove; curEval=bestMoveEval; current=curEval.placements.slice(); accept(curEval); changed=true; }
+          if(bestMove){ current[i]=bestMove; curEval=bestMoveEval; accept(curEval); changed=true; }
           reportProgress(false,{fullPackingFound:true});
         }
       }
       return current;
     }
     function compareEvaluations(a,b){ return compareEvaluationObjects(a,b); }
+
+    function multiStartFullPackings(deadline,nodeCap){
+      currentStage='阶段2：多起点生成不同的多格布局';
+      let restart=0;
+      while(performance.now()<deadline && nodes<nodeCap){
+        restart++;
+        const rem=groups.map(g=>g.items.length);
+        const lastIdx=groups.map(()=>-1);
+        const placed=[];
+        const localNodeEnd=Math.min(nodeCap,nodes+Math.max(800,fullCoreItemCount*350));
+        function rec(occupied,remArea,depth){
+          nodes++;
+          if(nodes>=localNodeEnd || performance.now()>=deadline) return false;
+          if(depth===fullCoreItemCount){
+            const evc=completeGeometryWithSingletons(placed,false);
+            accept(evc);
+            return evc.complete;
+          }
+          if(!fullPackingPrune(occupied,rem,lastIdx,remArea,singletonCount)) return false;
+          const sel=selectGroup(rem,lastIdx,occupied);
+          if(!sel || sel.dead) return false;
+          const {gi,group,item}=sel;
+          const scored=[];
+          for(const pi of sel.feasible){
+            const p=instantiate(group.templates[pi],item,group);
+            const bg=useBonus?adjacencyGainFor(p,placed):{bonus:0};
+            const nextOcc=occupied|p.mask;
+            const depthRatio=fullCoreItemCount?depth/fullCoreItemCount:1;
+            const opp=depthRatio>0.25?singletonOpportunityProxy(nextOcc,placed.concat(p)):0;
+            const compact=placed.reduce((n,old)=>n+(areAdjacent(p,old)?1:0),0);
+            const baseScore=bg.bonus+Math.max(0,opp)*(0.15+0.55*depthRatio)+compact*0.01;
+            scored.push({pi,p,score:baseScore*(0.92+rand()*0.20)+rand()*Math.max(1,Math.abs(baseScore)*0.03)});
+          }
+          scored.sort((a,b)=>b.score-a.score || a.pi-b.pi);
+          const oldLast=lastIdx[gi]; rem[gi]--;
+          const branchLimit=Math.min(scored.length,Math.max(3,Math.ceil(7-depth*0.35)));
+          for(let si=0;si<branchLimit;si++){
+            const x=scored[si]; lastIdx[gi]=x.pi; placed.push(x.p);
+            if(rec(occupied|x.p.mask,remArea-group.area,depth+1)){ placed.pop(); rem[gi]++; lastIdx[gi]=oldLast; return true; }
+            placed.pop();
+          }
+          rem[gi]++; lastIdx[gi]=oldLast; return false;
+        }
+        rec(0n,fullCoreArea,0);
+        reportProgress(false,{fullPackingFound:best.complete,restarts:restart});
+      }
+    }
 
     function optimizeFullPackings(deadline,nodeCap){
       currentStage='阶段2：按实际总属性与邻接顺序优化完整方案';
@@ -1396,13 +1686,13 @@ function solverWorkerMain(){
       const placed=[], bonusEvents=[], priorityLinks=[];
       function rec(occupied,baseScore,bonusScore,manualVector,defaultVector,remArea,depth){
         nodes++;
-        if((nodes&2047)===0) reportProgress(false,{fullPackingFound:true});
+        if((nodes&255)===0) reportProgress(false,{fullPackingFound:true});
         if(hitBudget(deadline,nodeCap)){ optimizationCutoff=true; return; }
-        if(depth===searchableItems){
-          accept(evaluateComplete(placed));
+        if(depth===fullCoreItemCount){
+          accept(completeGeometryWithSingletons(placed,false));
           return;
         }
-        if(!fullPackingPrune(occupied,rem,lastIdx,remArea)) return;
+        if(!fullPackingPrune(occupied,rem,lastIdx,remArea,singletonCount)) return;
         const sel=selectGroup(rem,lastIdx,occupied);
         if(!sel || sel.dead) return;
         const {gi,group,item}=sel;
@@ -1412,10 +1702,13 @@ function solverWorkerMain(){
           const pg=priorityGainFor(p,placed);
           const bg=useBonus?adjacencyGainFor(p,placed):{bonus:0,events:[]};
           const compact=placed.reduce((s,old)=>s+(areAdjacent(p,old)?1:0),0);
-          scored.push({pi,p,pg,bg,compact});
+          const nextOcc=occupied|p.mask;
+          const depthRatio=fullCoreItemCount?depth/fullCoreItemCount:1;
+          const singletonOpp=depthRatio>0.20?singletonOpportunityProxy(nextOcc,placed.concat(p)):0;
+          scored.push({pi,p,pg,bg,compact,singletonOpp,branchTotal:bg.bonus+Math.max(0,singletonOpp)*(0.20+0.70*depthRatio)});
         }
         scored.sort((a,b)=>{
-          if(Math.abs(a.bg.bonus-b.bg.bonus)>EPS) return b.bg.bonus-a.bg.bonus;
+          if(Math.abs(a.branchTotal-b.branchTotal)>EPS) return b.branchTotal-a.branchTotal;
           const mc=compareVectors(b.pg.manualVector,a.pg.manualVector); if(mc!==0) return mc;
           const dc=compareVectors(b.pg.defaultVector,a.pg.defaultVector); if(dc!==0) return dc;
           if(a.compact!==b.compact) return b.compact-a.compact;
@@ -1435,7 +1728,7 @@ function solverWorkerMain(){
         rem[gi]++;
         lastIdx[gi]=oldLast;
       }
-      rec(0n,0,0,emptyManualVector(),emptyDefaultVector(),searchableArea,0);
+      rec(0n,0,0,emptyManualVector(),emptyDefaultVector(),fullCoreArea,0);
     }
 
     function searchBestPartial(deadline,nodeCap){
@@ -1446,7 +1739,7 @@ function solverWorkerMain(){
       const initialRemArea=searchableArea, initialRemBase=searchableBase;
       function rec(occupied,baseScore,bonusScore,area,itemCount,adjacencyCount,manualVector,defaultVector,remArea,remBase){
         nodes++;
-        if((nodes&2047)===0) reportProgress(false,{fullPackingFound:false});
+        if((nodes&255)===0) reportProgress(false,{fullPackingFound:false});
         if(hitBudget(deadline,nodeCap)){ fallbackCutoff=true; return; }
         accept(currentCandidate(baseScore,bonusScore,area,itemCount,adjacencyCount,manualVector,defaultVector,placed,occupied,bonusEvents,priorityLinks));
         const remainingCount=rem.reduce((sum,n)=>sum+n,0);
@@ -1507,15 +1800,17 @@ function solverWorkerMain(){
     }
 
     if(fullPackingAttempted){
-      groups=fullGroups; geometryMode=true;
-      const stageDeadline=Math.min(hardDeadline,started+timeLimit*0.72);
-      const stageNodeCap=Math.min(nodeLimit,Math.max(1000,Math.floor(nodeLimit*0.72)));
+      groups=fullCoreGroups; geometryMode=true;
+      const stageDeadline=Math.min(hardDeadline,started+timeLimit*0.30);
+      const stageNodeCap=Math.min(nodeLimit,Math.max(1000,Math.floor(nodeLimit*0.30)));
       fullPackingFound=findFullPacking(stageDeadline,stageNodeCap);
       if(fullPackingFound){
-        accept(evaluateComplete(fullSeed));
-        self.postMessage({type:'incumbent',stage:'已找到全部物品可行摆法，继续优化实际总属性与邻接',best:serializeBest(),nodes,elapsed:Math.round(performance.now()-started),fullPackingFound:true,totalArea,totalItems});
-        const localDeadline=Math.min(hardDeadline,performance.now()+Math.max(250,Math.min(1500,timeLimit*0.08)));
+        accept(completeGeometryWithSingletons(fullSeed,true));
+        self.postMessage({type:'incumbent',stage:`已找到完整摆法；${singletonCount} 件单格物品已延后按真实加成分配，继续多起点优化`,best:serializeBest(),nodes,elapsed:Math.round(performance.now()-started),fullPackingFound:true,totalArea,totalItems});
+        const localDeadline=Math.min(hardDeadline,performance.now()+Math.max(350,Math.min(2200,timeLimit*0.10)));
         fullSeed=localImprove(fullSeed,localDeadline);
+        const multiDeadline=Math.min(hardDeadline,performance.now()+Math.max(500,Math.min(5000,timeLimit*0.22)));
+        if(performance.now()<multiDeadline && nodes<nodeLimit) multiStartFullPackings(multiDeadline,Math.min(nodeLimit,nodes+Math.max(5000,Math.floor(nodeLimit*0.25))));
         if(performance.now()<hardDeadline && nodes<nodeLimit) optimizeFullPackings(hardDeadline,nodeLimit);
       }else if(performance.now()<hardDeadline && nodes<nodeLimit){
         groups=partialGroups; geometryMode=false;
@@ -1532,7 +1827,7 @@ function solverWorkerMain(){
     const stopped=hardCutoff || fullSearchCutoff || optimizationCutoff || fallbackCutoff;
     currentStage='完成';
     reportProgress(true,{fullPackingFound});
-    self.postMessage({type:'done',best:serializeBest(),nodes,elapsed,stopped,fullPackingAttempted,fullPackingFound,fullSearchCutoff,optimizationCutoff,fallbackCutoff,totalArea,totalBase,totalItems,fullGroupCount:fullGroups.length,detailedGroupCount:partialGroups.length,assignmentStrategy:'geometry_then_item_assignment'});
+    self.postMessage({type:'done',best:serializeBest(),nodes,elapsed,stopped,fullPackingAttempted,fullPackingFound,fullSearchCutoff,optimizationCutoff,fallbackCutoff,totalArea,totalBase,totalItems,fullGroupCount:fullGroups.length,detailedGroupCount:partialGroups.length,assignmentStrategy:'multi_cell_first_then_singleton_assignment',singletonDeferredCount:singletonCount,assignmentChecks});
   };
 }
 
@@ -1545,15 +1840,79 @@ function createSolverWorker(){
   return worker;
 }
 
+
+function stopSolverStatusHeartbeat(){
+  if(solverStatusTimer){
+    clearInterval(solverStatusTimer);
+    solverStatusTimer = null;
+  }
+  solverStatusState = null;
+}
+
+function renderLiveSolverStatus(){
+  if(!solverStatusState || !solverWorker) return;
+  const s = solverStatusState;
+  const now = performance.now();
+  const elapsed = Math.max(0, Math.round(now - s.startedAt));
+  const sinceWorkerReport = Math.max(0, Math.round(now - s.lastReportAt));
+  const bestKnown = Number.isFinite(Number(s.bestTotal)) && Number(s.bestTotal) >= 0;
+  document.getElementById('statusBox').textContent = `${s.stage || '正在后台搜索'}
+已检查节点：${Number(s.nodes || 0).toLocaleString('zh-CN')}
+已耗时：${elapsed} ms（界面每 500 ms 刷新）
+距求解器最近一次进度报告：${sinceWorkerReport} ms
+当前是否完整装入：${s.bestComplete?'是':'否'}
+当前最好实际总属性：${bestKnown?formatNum(s.bestTotal):'尚未形成可评分方案'}
+当前最好基础值：${bestKnown?formatNum(s.bestBase):'-'}
+当前最好百分比加成：${bestKnown?formatNum(s.bestBonus):'-'}
+当前最好总邻接数量：${bestKnown?(s.bestAdjacency ?? 0):'-'}
+当前放入物品：${s.bestItems ?? 0}/${s.totalItems ?? inventory.length}
+当前空间利用：${Math.max(0,Number(s.bestArea)||0)}/${s.activeCells}
+${s.restarts ? `多起点尝试：${s.restarts}\n` : ''}
+求解器可能正在评估一个耗时较长的完整候选；计时持续变化即表示任务仍在运行。
+可点击“停止计算”保留当前已显示结果。`;
+}
+
+function startSolverStatusHeartbeat(activeCells,totalItems){
+  stopSolverStatusHeartbeat();
+  const now = performance.now();
+  solverStatusState = {
+    startedAt:now,lastReportAt:now,stage:'准备并启动后台搜索',nodes:0,
+    bestComplete:false,bestArea:0,bestBase:-1,bestBonus:0,bestTotal:-1,bestAdjacency:0,bestItems:0,
+    activeCells,totalItems,restarts:0
+  };
+  solverStatusTimer = setInterval(renderLiveSolverStatus,500);
+}
+
+function updateSolverStatusFromMessage(msg,activeCells){
+  if(!solverStatusState) return;
+  Object.assign(solverStatusState,{
+    stage:msg.stage || solverStatusState.stage,
+    nodes:msg.nodes ?? solverStatusState.nodes,
+    bestComplete:msg.bestComplete ?? msg.best?.complete ?? solverStatusState.bestComplete,
+    bestArea:msg.bestArea ?? msg.best?.area ?? solverStatusState.bestArea,
+    bestBase:msg.bestBase ?? msg.best?.baseScore ?? solverStatusState.bestBase,
+    bestBonus:msg.bestBonus ?? msg.best?.bonusScore ?? solverStatusState.bestBonus,
+    bestTotal:msg.bestTotal ?? msg.best?.totalScore ?? solverStatusState.bestTotal,
+    bestAdjacency:msg.bestAdjacency ?? msg.best?.adjacencyCount ?? solverStatusState.bestAdjacency,
+    bestItems:msg.bestItems ?? msg.best?.itemCount ?? solverStatusState.bestItems,
+    totalItems:msg.totalItems ?? solverStatusState.totalItems,
+    activeCells,
+    restarts:msg.restarts ?? solverStatusState.restarts,
+    lastReportAt:performance.now()
+  });
+  renderLiveSolverStatus();
+}
+
 function setSolverRunning(running){
   const solveBtn = document.getElementById('solveBtn');
   const cancelBtn = document.getElementById('cancelSolveBtn');
   solveBtn.disabled = running;
-  solveBtn.textContent = running ? '正在计算…' : '计算最优摆放解';
+  solveBtn.textContent = running ? '正在搜索…' : '搜索更优摆放解';
   cancelBtn.disabled = !running;
 }
 
 function cleanupSolverWorker(){
+  stopSolverStatusHeartbeat();
   if(!solverWorker) return;
   const url = solverWorker._blobUrl;
   solverWorker.terminate();
@@ -1586,6 +1945,7 @@ function solveAndRender(){
   }));
   solverWorker = createSolverWorker();
   setSolverRunning(true);
+  startSolverStatusHeartbeat(activeCells, inventory.length);
   const totalSearchArea = inventory.reduce((sum,x)=>sum+(x.cells?.length||0),0);
   const totalSearchBase = inventory.reduce((sum,x)=>sum+Math.max(0,Number(x.value)||0),0);
   document.getElementById('statusBox').textContent = `正在后台搜索…
@@ -1593,37 +1953,31 @@ function solveAndRender(){
 ${skipped.length>0?'存在单件无法合法放置的物品，将直接搜索最佳可行子集。':(totalSearchArea<=activeCells?'先寻找全部物品的完整摆法，再按实际总属性与邻接顺序优化。':'物品总面积超过空间，将按实际总属性与邻接顺序搜索最佳可行子集。')}
 节点上限：${nodeLimit.toLocaleString('zh-CN')}
 时间上限：${timeLimit} ms
-手动优先物品：${manualItems.length} 件
+自定义邻接优先物品：${manualItems.length} 件
+求解起点：从已有物品清单自动生成
 
+状态区会每 500 ms 更新计时；求解器阶段、节点和最好评分在收到新进度时同步更新。
 页面仍可正常操作；需要中止时点击“停止计算”。`;
 
   solverWorker.onmessage = function(ev){
     const msg = ev.data;
     if(msg.type === 'progress'){
-      document.getElementById('statusBox').textContent = `${msg.stage || '正在后台搜索'}
-已检查节点：${msg.nodes.toLocaleString('zh-CN')}
-已耗时：${msg.elapsed} ms
-当前是否完整装入：${msg.bestComplete?'是':'否'}
-当前最好实际总属性：${formatNum(msg.bestTotal)}
-当前最好基础值：${formatNum(msg.bestBase)}
-当前最好百分比加成：${formatNum(msg.bestBonus)}
-当前最好总邻接数量：${msg.bestAdjacency ?? 0}
-当前放入物品：${msg.bestItems ?? 0}/${msg.totalItems ?? inventory.length}
-当前空间利用：${msg.bestArea}/${activeCells}
-
-页面不会被搜索阻塞，可点击“停止计算”。`;
+      updateSolverStatusFromMessage(msg,activeCells);
       return;
     }
     if(msg.type === 'incumbent'){
       renderResultGrid(msg.best);
-      document.getElementById('statusBox').textContent = `已找到全部物品都能放入的摆法，并已先显示。
-正在继续按“实际总属性 → 手动优先级 → 默认优先级 → 总邻接数量”优化…
-已检查节点：${msg.nodes.toLocaleString('zh-CN')}
-已耗时：${msg.elapsed} ms
-空间利用：${msg.best.area}/${activeCells}
-放入物品：${msg.best.itemCount}/${msg.totalItems}
-
-可等待最终结果，也可点击“停止计算”保留当前预览。`;
+      updateSolverStatusFromMessage({
+        ...msg,
+        stage:msg.stage || '已找到完整摆法，继续优化',
+        bestComplete:true,
+        bestArea:msg.best.area,
+        bestBase:msg.best.baseScore,
+        bestBonus:msg.best.bonusScore,
+        bestTotal:msg.best.totalScore,
+        bestAdjacency:msg.best.adjacencyCount,
+        bestItems:msg.best.itemCount
+      },activeCells);
       return;
     }
     if(msg.type !== 'done') return;
@@ -1654,7 +2008,9 @@ ${skipped.length>0?'存在单件无法合法放置的物品，将直接搜索最
         totalItems:msg.totalItems,
         fullGroupCount:msg.fullGroupCount,
         detailedGroupCount:msg.detailedGroupCount,
-        assignmentStrategy:msg.assignmentStrategy
+        assignmentStrategy:msg.assignmentStrategy,
+        singletonDeferredCount:msg.singletonDeferredCount,
+        assignmentChecks:msg.assignmentChecks
       }
     };
     if(workerRef){
@@ -1663,6 +2019,7 @@ ${skipped.length>0?'存在单件无法合法放置的物品，将直接搜索最
       if(url) URL.revokeObjectURL(url);
     }
     solverWorker = null;
+    stopSolverStatusHeartbeat();
     setSolverRunning(false);
     renderResultGrid(best);
     renderStats(best,msg.nodes,msg.elapsed,msg.stopped,activeCells,skipped,lastResult.solverMeta);
@@ -1767,7 +2124,7 @@ function renderStats(best, nodes, elapsed, stopped, activeCells, skipped, solver
   const omittedText = omitted.length ? `\n\n本方案未放入：\n${omitted.map(x=>`#${x.no} ${x.name}（${x.cells.length}格）`).join('\n')}` : '';
   let conclusion;
   if(solverMeta.fullPackingFound){
-    conclusion = stopped ? '已确认所有物品均可放入；后续属性与邻接优化达到时间/节点上限，返回目前最优的完整装入方案。' : '已确认所有物品均可放入，并完成实际总属性与邻接优化。';
+    conclusion = stopped ? '已确认所有物品均可放入；后续属性与邻接优化达到时间/节点上限，返回目前找到的最好完整方案，但未证明全局最优。' : '已确认所有物品均可放入，并完成实际总属性与邻接优化。';
   }else if(skipped && skipped.length){
     conclusion = stopped ? '至少一件物品在当前空间/方向规则下没有合法位置；搜索达到上限，返回目前按目标顺序找到的最佳可行子集。' : '至少一件物品在当前空间/方向规则下没有合法位置，因此无法完整装入；已返回最佳可行子集。';
   }else if(solverMeta.totalArea>activeCells){
@@ -1779,7 +2136,16 @@ function renderStats(best, nodes, elapsed, stopped, activeCells, skipped, solver
   }else{
     conclusion = stopped ? '搜索达到上限，返回当前最好方案。' : '搜索完成。';
   }
-  document.getElementById('statusBox').textContent = `${conclusion}\n耗时：${elapsed} ms\n完整装入：${best.complete?'是':'否'}\n物品总占格：${solverMeta.totalArea ?? '-'}，可用空间：${activeCells}\n放入物品：${best.itemCount}/${solverMeta.totalItems ?? inventory.length}\n空余可用格：${unused}\n比较顺序：完整装入 ＞ 实际总属性（基础属性 + 百分比加成）＞ 手动指定物品邻接（1最高，同优先级合并比较）＞ 默认重点物品邻接 ＞ 总邻接数量\n实际总属性：${formatNum(best.totalScore)} = 基础属性 ${formatNum(best.baseScore)} + 百分比加成 ${formatNum(best.bonusScore)}\n总邻接数量：${best.adjacencyCount ?? 0} 对不同物品\n\n重点物品邻接：\n${prioritySummary}\n\n摆放清单：\n${list}\n\n百分比加成清单：\n${eventList}${omittedText}${skippedText}`;
+  let singleSingleAdj=0, singleMultiAdj=0, multiMultiAdj=0;
+  for(let i=0;i<best.placements.length;i++) for(let j=i+1;j<best.placements.length;j++){
+    const a=best.placements[i], b=best.placements[j];
+    if(!areAdjacent(a.cells,b.cells)) continue;
+    const as=a.area===1, bs=b.area===1;
+    if(as&&bs) singleSingleAdj++;
+    else if(as||bs) singleMultiAdj++;
+    else multiMultiAdj++;
+  }
+  document.getElementById('statusBox').textContent = `${conclusion}\n耗时：${elapsed} ms\n求解起点：从已有物品清单自动生成\n自动布局策略：多格物品先布局，${solverMeta.singletonDeferredCount ?? 0} 件单格物品延后分配（属性分配检查 ${Number(solverMeta.assignmentChecks||0).toLocaleString('zh-CN')} 次）\n完整装入：${best.complete?'是':'否'}\n物品总占格：${solverMeta.totalArea ?? '-'}，可用空间：${activeCells}\n放入物品：${best.itemCount}/${solverMeta.totalItems ?? inventory.length}\n空余可用格：${unused}\n比较顺序：完整装入 ＞ 实际总属性（基础属性 + 百分比加成）＞ 手动指定物品邻接（1最高，同优先级合并比较）＞ 默认重点物品邻接 ＞ 总邻接数量\n实际总属性：${formatNum(best.totalScore)} = 基础属性 ${formatNum(best.baseScore)} + 百分比加成 ${formatNum(best.bonusScore)}\n总邻接数量：${best.adjacencyCount ?? 0} 对不同物品\n邻接结构：单格-单格 ${singleSingleAdj} 对｜单格-多格 ${singleMultiAdj} 对｜多格-多格 ${multiMultiAdj} 对\n\n重点物品邻接：\n${prioritySummary}\n\n摆放清单：\n${list}\n\n百分比加成清单：\n${eventList}${omittedText}${skippedText}`;
 }
 function buildPrioritySummary(best){
   const countByItem = new Map();
@@ -1845,7 +2211,7 @@ function loadConfig(){
     document.getElementById('allowRotate').checked = data.allowRotate === true;
     document.getElementById('allowMirror').checked = !!data.allowMirror;
     document.getElementById('useAdjacencyBonus').checked = data.useAdjacencyBonus === true;
-    renderSpaceGrid(); renderItemsTable(); renderInventoryTable(); renderResultGrid(null);
+    lastResult = null; renderSpaceGrid(); renderItemsTable(); renderInventoryTable(); renderResultGrid(null);
   }catch(e){ alert('读取失败：配置数据损坏。'); }
 }
 
