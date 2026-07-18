@@ -1068,11 +1068,17 @@ function solverWorkerMain(){
     }
     const fullGroups = buildGroups(geometryGroupKey,'geometry');
     const partialGroups = buildGroups(detailedGroupKey,'detailed');
-    // 完整装入搜索时，单格物品不再逐件参与几何回溯。
-    // 先搜索多格物品布局，再把单格物品按真实加成价值分配到剩余格子，可显著减少组合数。
-    const singletonItems = items.filter(t=>t.area===1);
+    // 开启百分比加成时保持原算法：多格物品先布局，单格物品延后按真实加成分配。
+    // 关闭百分比加成时，单格物品直接参与几何搜索，以优化重点邻接和总邻接数量。
+    const singletonItems = useBonus
+      ? items.filter(t=>t.area===1)
+      : [];
+
     const singletonCount = singletonItems.length;
-    const fullCoreGroups = fullGroups.filter(g=>g.area>1);
+
+    const fullCoreGroups = useBonus
+      ? fullGroups.filter(g=>g.area>1)
+      : fullGroups;
     const fullCoreItemCount = fullCoreGroups.reduce((sum,g)=>sum+g.items.length,0);
     const fullCoreArea = fullCoreGroups.reduce((sum,g)=>sum+g.items.length*g.area,0);
     const itemPlacementLookup = items.map(t=>new Map(t.placements.map(p=>[p.mask.toString(),p])));
