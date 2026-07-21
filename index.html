@@ -11,6 +11,7 @@
     --bad:#fee2e2; --good:#dcfce7; --cell:34px;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none!important}
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",Arial,sans-serif}
   header{padding:20px 24px;background:#111827;color:white}
   header h1{margin:0 0 6px;font-size:22px;font-weight:700}
@@ -44,7 +45,7 @@
   .mini{display:grid;gap:0;border:1px solid #374151;background:#374151;width:max-content;transform-origin:left top}
   .mini .mcell{width:14px;height:14px;background:white;border:1px solid #374151}
   .mini .mcell.fill{background:#111827}
-  table{width:100%;border-collapse:collapse;margin-top:8px;min-width:520px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;min-width:0;table-layout:auto}
   th,td{border-bottom:1px solid #e5e7eb;padding:6px;text-align:left;vertical-align:middle}
   th{font-size:12px;color:#4b5563;background:#f9fafb;white-space:nowrap}
   .shape-name{font-weight:600}
@@ -60,10 +61,39 @@
   .sw{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.2)}
   pre{white-space:pre-wrap;background:#0b1020;color:#e5e7eb;border-radius:10px;padding:10px;max-height:380px;overflow:auto}
   .empty{color:#6b7280;text-align:center;padding:16px;background:#f9fafb;border-radius:8px}
-  .table-scroll{width:100%;max-width:100%;overflow:auto;border:1px solid #e5e7eb;border-radius:9px;margin-top:8px;overscroll-behavior:contain;scrollbar-gutter:stable both-edges;background:#fff}
-  .table-scroll table{margin-top:0;min-width:780px}
+  .table-scroll{width:100%;max-width:100%;overflow-x:hidden;overflow-y:auto;border:1px solid #e5e7eb;border-radius:9px;margin-top:8px;overscroll-behavior:contain;background:#fff}
+  .table-scroll table{margin-top:0;min-width:0;width:100%;max-width:100%}
+  .table-scroll input[type="number"],.table-scroll input[type="text"],.table-scroll select{max-width:100%;min-width:0}
+  .table-scroll input[type="number"]{width:82px}
   .table-scroll thead th{position:sticky;top:0;z-index:4;box-shadow:0 1px 0 #e5e7eb}
-  .inventory-scroll table{min-width:960px}
+  .column-options{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:8px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
+  .column-options strong{font-size:12px;color:#475569;margin:0 3px 0 1px;white-space:nowrap}
+  .column-options label{position:relative;display:inline-flex;align-items:center;margin:0;padding:0;cursor:pointer;user-select:none}
+  .column-options input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .column-options span{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 9px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;font-size:12px;font-weight:600;line-height:1;transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s}
+  .column-options span::before{content:"";display:grid;place-items:center;width:14px;height:14px;flex:0 0 14px;border:1.5px solid #94a3b8;border-radius:4px;background:#fff;color:#fff;font-size:11px;font-weight:800;line-height:1}
+  .column-options label:hover span{border-color:#94a3b8;background:#f8fafc;color:#1e293b}
+  .column-options input:checked+span{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8;box-shadow:inset 0 0 0 1px rgba(37,99,235,.05)}
+  .column-options input:checked+span::before{content:"✓";border-color:#2563eb;background:#2563eb}
+  .column-options input:focus-visible+span{outline:2px solid #2563eb;outline-offset:2px}
+  .hide-value-columns .col-value,.hide-bonus-rate-columns .col-bonus-rate,.hide-add-count-column .col-add-count{display:none}
+  .col-enabled{width:42px}.col-no{width:44px}.col-shape{width:58px}.col-quality{width:88px}.col-value{width:96px}.col-bonus-rate{width:96px}.col-add-count{width:96px}.col-priority{width:76px}.col-action{width:60px}
+  .table-scroll td.col-empty{grid-column:1/-1;width:100%;justify-content:center;text-align:center}
+  .inventory-cell-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:10px 12px;border:1px solid #dbe3ef;border-radius:8px;background:#f8fafc;color:#475569}
+  .inventory-cell-summary span{font-size:12px}
+  .inventory-cell-summary b{font-size:18px;color:#111827;white-space:nowrap}
+  .inventory-cell-summary .cell-balance{font-weight:700;text-align:right}
+  .inventory-cell-summary .cell-balance.under{color:#1d4ed8}
+  .inventory-cell-summary .cell-balance.exact{color:#15803d}
+  .inventory-cell-summary .cell-balance.over{color:#b91c1c}
+  @media (min-width:601px){
+    .table-scroll table,.table-scroll thead,.table-scroll tbody{display:block;width:100%}
+    .table-scroll tr{display:grid;grid-template-columns:repeat(var(--visible-columns,5),minmax(0,1fr));width:100%}
+    .table-scroll th,.table-scroll td{display:flex;width:auto;min-width:0;align-items:center;justify-content:center;text-align:center}
+    .table-scroll th.col-name,.table-scroll td.col-name{justify-content:flex-start;text-align:left}
+    .table-scroll td.col-name input{width:100%}
+    .table-scroll td.col-empty .empty{width:100%;white-space:nowrap}
+  }
   .custom-item-panel{margin-top:12px;border:1px solid #dbe3ef;border-radius:10px;background:#f8fafc;overflow:hidden}
   .custom-item-panel>summary{cursor:pointer;padding:10px 12px;font-weight:700;color:#334155;list-style:none;user-select:none}
   .custom-item-panel>summary::-webkit-details-marker{display:none}
@@ -72,6 +102,42 @@
   .custom-item-panel-body{padding:0 12px 12px}
   .space-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:start}
   .space-controls{min-width:0}
+  .recognition-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:16px;align-items:start}
+  .recognition-preview-wrap{background:#0f172a;border:1px solid #0b1220;border-radius:12px;padding:12px;min-width:0}
+  #recognitionCanvas{display:block;width:100%;height:auto;max-height:900px;margin:0 auto;border-radius:8px;background:#111827;touch-action:none}
+  #recognitionCanvas.manual{cursor:move}
+  .recognition-sidebar{display:grid;gap:12px;min-width:0}
+  .recognition-box{border:1px solid #dbe3ef;border-radius:10px;background:#f8fafc;padding:10px}
+  .recognition-box h3{margin:0 0 8px;color:#334155}
+  .bounds-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .bounds-grid label{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0}
+  .bounds-grid input[type="number"]{width:100%}
+  .recognition-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .recognition-stat{background:white;border:1px solid #e5e7eb;border-radius:10px;padding:8px}
+  .recognition-stat b{display:block;font-size:16px;margin-top:2px}
+  .recognition-groups{display:grid;gap:8px;max-height:300px;overflow:auto}
+  .recognition-group{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:8px;border:1px solid #e5e7eb;border-radius:10px;background:white}
+  .recognition-group.low{border-color:#fca5a5;background:#fff7f7}
+  .recognition-group-text{font-size:12px;color:#475569}
+  .recognition-group-text b{display:block;font-size:13px;color:#111827;margin-bottom:2px}
+  .recognition-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .recognition-actions input[type="file"]{max-width:100%}
+  .recognition-card>summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;user-select:none}
+  .recognition-card>summary::-webkit-details-marker{display:none}
+  .recognition-card>summary h2{margin:0;flex:1}
+  .recognition-card>summary::after{content:"展开";font-size:12px;font-weight:700;color:var(--accent);padding-right:2px}
+  .recognition-card[open]>summary::after{content:"收起"}
+  .recognition-card-body{padding-top:12px}
+  .recognition-card:not([open])>.recognition-card-body{display:none}
+  .recognition-group-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .recognition-group-controls select{min-width:110px}
+  .candidate-list{display:grid;gap:8px}
+  .candidate-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px;border:1px solid #dbe3ef;background:#fff;border-radius:8px}
+  .candidate-item.invalid{border-color:#fca5a5;background:#fff7f7}
+  .replacement-result{border:1px solid #dbe3ef;background:#fff;padding:10px;border-radius:8px;white-space:pre-wrap}
+  .semi-candidates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}
+  .semi-candidate{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;text-align:left;background:#fff;border:1px solid #cbd5e1}
+  .semi-candidate:hover{border-color:var(--accent)}
   .result-main{display:grid;grid-template-columns:auto minmax(320px,1fr);gap:24px;align-items:start;min-width:0}
   .result-grid-block{min-width:0}
   .embedded-solver{min-width:0;padding:14px;border:1px solid #dbe3ef;border-radius:12px;background:#f8fafc}
@@ -102,13 +168,47 @@
   }
   @media (max-width:899px){
     main{grid-template-columns:1fr}
-    .space-body,.output-wrap,.result-main{grid-template-columns:1fr}
-    .table-scroll{overflow-x:auto;overflow-y:visible}
+    .space-body,.output-wrap,.result-main,.recognition-layout{grid-template-columns:1fr}
+    .table-scroll{overflow:visible;overscroll-behavior:auto;touch-action:pan-y}
+    .table-scroll table,.table-scroll tbody,.table-scroll tr,.table-scroll td{touch-action:pan-y}
     .library-scroll,.inventory-scroll{max-height:none}
+  }
+  @media (max-width:600px){
+    :root{--cell:min(12.2vw,34px)}
+    body{font-size:13px;overflow-x:hidden}
+    header{padding:14px 12px}
+    header h1{font-size:19px}
+    main{padding:8px;gap:10px;max-width:100%}
+    .card{padding:10px;margin-bottom:10px;border-radius:8px;max-width:100%}
+    .row{gap:2px}
+    button{min-height:36px;padding:7px 9px}
+    input[type="number"]{width:72px}
+    .table-scroll{border:0;background:transparent}
+    .table-scroll table,.table-scroll tbody{display:block;width:100%}
+    .table-scroll thead{display:none}
+    .table-scroll tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 10px;margin-bottom:8px;padding:9px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
+    .table-scroll td{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:8px;padding:0;border:0}
+    .table-scroll td::before{content:attr(data-label);flex:0 0 auto;color:#64748b;font-size:11px;font-weight:700}
+    .table-scroll td.col-name,.table-scroll td.col-empty{grid-column:1/-1}
+    .table-scroll td.col-empty{display:block}
+    .table-scroll td.col-empty::before{display:none}
+    .table-scroll input[type="number"],.table-scroll input[type="text"],.table-scroll select{min-width:0;width:100%}
+    .table-scroll button{flex:0 0 auto;white-space:nowrap}
+    .table-scroll .name-input{width:100%}
+    .table-scroll .mini{margin-left:auto}
+    .column-options{gap:7px 12px}
+    .column-options strong{flex:0 0 100%}
+    .inventory-cell-summary{align-items:flex-start;flex-wrap:wrap}
+    .inventory-cell-summary .cell-balance{width:100%;text-align:left}
+    .output-wrap{gap:10px}
+    .embedded-solver{padding:10px}
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .recognition-preview-wrap{padding:6px}
+    .semi-candidates{grid-template-columns:1fr}
   }
 </style>
 </head>
-<body>
+<body class="hide-value-columns hide-bonus-rate-columns hide-add-count-column">
 <header>
   <h1>背包排列优化工具</h1>
   <p>严格按“完整装入 → 实际总属性 → 手动邻接优先级 → 默认邻接优先级 → 总邻接数量”优化；实际总属性等于基础属性与百分比加成之和。</p>
@@ -141,9 +241,10 @@
       </div>
       <div class="hint">物品库提供形状与默认参数。添加到已有物品清单后，每个实际物品仍可单独改品质、基础属性、加成率和三格受加成开关。基础属性会按物品格数与品质自动给默认值。</div>
       <div class="hint">横屏时物品库和已有物品清单左右并排，并分别在固定高度区域内滚动；自定义物品区域默认折叠。</div>
+      <div class="column-options"><strong>显示列</strong><label><input type="checkbox" data-column-toggle="value"><span>属性值</span></label><label><input type="checkbox" data-column-toggle="bonus-rate"><span>加成率</span></label><label><input type="checkbox" data-column-toggle="add-count"><span>添加数量</span></label></div>
       <div class="table-scroll library-scroll" aria-label="物品库列表">
         <table id="itemsTable">
-          <thead><tr><th>启用</th><th>物品</th><th>形状</th><th>品质</th><th>默认属性</th><th>加成率%</th><th>添加数量</th><th>操作</th></tr></thead>
+          <thead><tr><th class="col-enabled">启用</th><th class="col-name">物品</th><th class="col-shape">形状</th><th class="col-quality">品质</th><th class="col-value">默认属性</th><th class="col-bonus-rate">加成率%</th><th class="col-add-count">添加数量</th><th class="col-action">操作</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -169,18 +270,91 @@
         <button id="clearInventoryBtn" class="danger">清空清单</button>
       </div>
       <div class="hint">每个条目代表一个实际拥有的物品。三格物品是否“自身因相邻受加成”在这里逐个开关。还可填写“邻接优先级”：1 为最高，数字越小越优先；留空则按默认规则计算。</div>
+      <div class="column-options"><strong>显示列</strong><label><input type="checkbox" data-column-toggle="value"><span>属性值</span></label><label><input type="checkbox" data-column-toggle="bonus-rate"><span>加成率</span></label></div>
       <div class="table-scroll inventory-scroll" aria-label="已有物品清单">
         <table id="inventoryTable">
-          <thead><tr><th>编号</th><th>名称</th><th>形状</th><th>品质</th><th>基础属性</th><th>加成属性</th><th>加成率%</th><th>邻接优先级</th><th>操作</th></tr></thead>
+          <thead><tr><th class="col-no">编号</th><th class="col-name">名称</th><th class="col-shape">形状</th><th class="col-quality">品质</th><th class="col-value">基础属性</th><th class="col-value col-bonus-control">加成属性</th><th class="col-bonus-rate">加成率%</th><th class="col-priority">邻接优先级</th><th class="col-action">操作</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
+      <div class="inventory-cell-summary" aria-live="polite">
+        <span>物品数量 <b id="inventoryItemTotal">0</b></span>
+        <span>总格数 <b id="inventoryCellTotal">0 / 42</b></span>
+        <span id="inventoryCellBalance" class="cell-balance under">还差 42 格</span>
+      </div>
     </div>
+
+    <details class="card recognition-card">
+      <summary><h2>4. 截图导入识别</h2></summary>
+      <div class="recognition-card-body">
+      <div class="recognition-actions">
+        <input id="recognitionFile" type="file" accept="image/*">
+        <label>截图类型 <select id="recognitionPageType"><option value="auto">自动判断</option><option value="edit">法宝编辑页</option><option value="battle">战斗背包页</option></select></label>
+        <button id="recognitionPasteBtn">读取剪贴板图片</button>
+        <button id="recognitionDetectBtn" class="primary" disabled>开始识别</button>
+        <button id="recognitionImportBtn" disabled>导入到已有物品清单</button>
+        <button id="recognitionClearBtn" class="danger" disabled>清空图片</button>
+      </div>
+      <div class="hint">只支持这款游戏的背包页截图。普通截图会自动识别；复杂编辑页也可像示例一样，用纯红线连接同一件物品的相邻格后再上传，系统会把红线作为硬约束。边框不准时可手动拖动矩形或四角。</div>
+      <div class="recognition-layout">
+        <div class="recognition-preview-wrap">
+          <canvas id="recognitionCanvas" width="640" height="960" aria-label="截图识别预览"></canvas>
+        </div>
+        <div class="recognition-sidebar">
+          <div class="recognition-box">
+            <h3>识别边框</h3>
+            <div class="row">
+              <label><input id="recognitionManualMode" type="checkbox"> 手动微调边框</label>
+              <button id="recognitionResetBoundsBtn" disabled>重置自动框</button>
+            </div>
+            <div class="bounds-grid">
+              <label>X<input id="recognitionBoundX" type="number" min="0" step="1" value="0" disabled></label>
+              <label>Y<input id="recognitionBoundY" type="number" min="0" step="1" value="0" disabled></label>
+              <label>W<input id="recognitionBoundW" type="number" min="1" step="1" value="0" disabled></label>
+              <label>H<input id="recognitionBoundH" type="number" min="1" step="1" value="0" disabled></label>
+            </div>
+            <div class="hint">蓝框是当前识别边框；识别后可直接点击两格之间的线，切换“同一件/不同件”。青线表示强制合并，红线表示强制拆分。</div>
+            <div class="row">
+              <button id="semiAutoStartBtn" disabled>开始半自动标注</button>
+              <button id="semiAutoUndoBtn" disabled title="撤销上一件">撤销</button>
+              <button id="semiAutoResetBtn" disabled>重置标注</button>
+            </div>
+            <div id="semiAutoStatus" class="hint">点击开始后，每件物品只需选择一次形状。</div>
+            <div id="semiAutoCandidates" class="semi-candidates"></div>
+          </div>
+          <div class="recognition-stats">
+            <div class="recognition-stat">图片尺寸<b id="recognitionImageSize">-</b></div>
+            <div class="recognition-stat">定位置信度<b id="recognitionBoundsConfidence">-</b></div>
+            <div class="recognition-stat">识别物品数<b id="recognitionGroupCount">-</b></div>
+            <div class="recognition-stat">低置信格<b id="recognitionLowCount">-</b></div>
+          </div>
+          <pre id="recognitionStatusBox">尚未载入截图。</pre>
+          <div id="recognitionGroups" class="recognition-groups">
+            <div class="empty">暂无识别结果。</div>
+          </div>
+          <div id="candidateBox" class="recognition-box" hidden>
+            <h3>待替换候选法宝</h3>
+            <div class="hint">系统只会自动使用已勾选且形状合法的候选。识别不准时可修改形状或品质。</div>
+            <div id="recognitionCandidates" class="candidate-list"></div>
+            <div class="row">
+              <button id="addCandidateBtn">手动添加候选</button>
+              <button id="replacementSolveBtn" class="primary">计算大件替换方案</button>
+            </div>
+          </div>
+          <div id="replacementBox" class="recognition-box" hidden>
+            <h3>大件替换方案</h3>
+            <div id="replacementResult" class="replacement-result">尚未计算。</div>
+            <div class="row"><button id="replacementApplyBtn" disabled>应用替换方案</button></div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </details>
   </section>
 
   <section>
     <div class="card result-card">
-      <h2>4. 自动搜索与当前最佳摆放结果</h2>
+      <h2>5. 自动搜索与当前最佳摆放结果</h2>
       <div class="output-wrap">
         <div class="result-main">
           <div class="result-grid-block">
@@ -190,11 +364,19 @@
           <div class="embedded-solver">
             <h3>求解设置</h3>
             <div class="row">
+              <label>搜索档位
+                <select id="searchMode">
+                  <option value="fast">快速（最多 3 秒）</option>
+                  <option value="deep" selected>深度（使用下方上限）</option>
+                </select>
+              </label>
               <label>最大搜索节点 <input id="nodeLimit" type="number" min="1000" step="1000" value="2500000"></label>
               <label>最长搜索时间(ms) <input id="timeLimit" type="number" min="100" step="100" value="20000"></label>
             </div>
             <div class="row">
               <label><input id="useAdjacencyBonus" type="checkbox" checked> 启用百分比相邻加成</label>
+              <label><input id="parallelSearch" type="checkbox"> 并行搜索</label>
+              <label id="workerCountLabel" hidden>Worker 数量 <input id="workerCount" type="number" min="2" max="4" step="1" value="2"></label>
             </div>
             <div class="row">
               <button id="solveBtn" class="primary">搜索更优摆放解</button>
@@ -203,7 +385,7 @@
               <button id="saveBtn">保存当前配置</button>
               <button id="loadBtn">读取配置</button>
             </div>
-            <div class="hint">采用有限时间的“多格物品先布局 + 单格物品延后填充 + 多起点改进”搜索：先确认完整装入，再依次优化实际总属性、手动优先物品邻接、默认重点物品邻接和总邻接数量。单格物品不会逐件参与几何回溯，而是在多格布局形成后按真实加成价值分配到剩余位置，从而减少搜索量并避免仅因紧凑度把大量单格物品堆在一起。搜索从已有物品清单自动生成初始布局；达到时间或节点上限不代表已证明全局最优。</div>
+            <div class="hint">快速档优先在 3 秒内给出可用结果；深度档使用自定义上限继续优化。并行搜索会用多个不同随机起点同时计算并合并最佳结果，速度更快但会增加 CPU 与耗电，默认关闭。达到时间或节点上限不代表已证明全局最优。</div>
           </div>
         </div>
         <div class="result-summary">
@@ -224,9 +406,10 @@
     </div>
 
     <div class="card help-card">
-      <h2>5. 使用说明</h2>
+      <h2>6. 使用说明</h2>
       <ol>
         <li>先设置背包宽度、高度，并点击空间格子标记已解锁区域。</li>
+        <li>截图自动识别不准时，点击“开始半自动标注”：点物品任意格，选择正确形状，依次确认到全部格子完成。</li>
         <li>从物品库添加物品到已有物品清单；真正参与计算的是已有物品清单。</li>
         <li>在已有物品清单中逐个修改品质、基础属性、加成率；三格物品可逐个勾选“自身受加成”。</li>
         <li>需要指定某件物品优先获得更多邻居时，在“邻接优先级”中填写数字：1 最高，数字越小越优先；留空使用默认规则。</li>
@@ -286,26 +469,79 @@ let inventory = [];
 let nextItemNo = 1;
 let lastResult = null;
 let solverWorker = null;
+let solverWorkers = [];
 let solverStatusTimer = null;
 let solverStatusState = null;
+const RECOGNITION_GRID_COLS = 7;
+const RECOGNITION_GRID_ROWS = 6;
+const RECOGNITION_QUALITY_PALETTE = {
+  green:[186,214,168],
+  blue:[163,205,226],
+  purple:[205,173,216],
+  gold:[227,190,145],
+  red:[205,114,96]
+};
+const RECOGNITION_QUALITY_ORDER = ['green','blue','purple','gold','red'];
+const RECOGNITION_SEED_RECT = {x:0.076, y:0.486, w:0.847, h:0.322};
+let recognitionState = createRecognitionState();
+let replacementResult = null;
 
 const DEFAULT_ITEMS = [
-  {id:'one-1', name:'单格', cells:[[0,0]], quality:'green', enabled:true},
-  {id:'two-v', name:'双格-竖条', cells:[[0,0],[1,0]], quality:'green', enabled:true},
-  {id:'two-h', name:'双格-横条', cells:[[0,0],[0,1]], quality:'green', enabled:true},
-  {id:'three-i', name:'三格-I型', cells:[[0,0],[1,0],[2,0]], quality:'blue', threeSelfBonus:false, enabled:true},
-  {id:'three-l-a', name:'三格-L型A', cells:[[0,1],[1,0],[1,1]], quality:'blue', threeSelfBonus:false, enabled:true},
-  {id:'three-l-b', name:'三格-L型B', cells:[[0,0],[0,1],[1,0]], quality:'blue', threeSelfBonus:false, enabled:true},
-  {id:'four-o', name:'四格-方块', cells:[[0,0],[0,1],[1,0],[1,1]], quality:'purple', enabled:true},
-  {id:'four-l', name:'四格-L型', cells:[[0,0],[1,0],[2,0],[0,1]], quality:'purple', enabled:true},
-  {id:'four-j', name:'四格-J型', cells:[[0,1],[1,1],[2,1],[2,0]], quality:'purple', enabled:true},
-  {id:'four-i', name:'四格-I型', cells:[[0,0],[1,0],[2,0],[3,0]], quality:'purple', enabled:true},
+  {id:'one-1', name:'单格', cells:[[0,0]], quality:'purple', enabled:true},
+  {id:'two-v', name:'双格-竖条', cells:[[0,0],[1,0]], quality:'gold', enabled:true},
+  {id:'two-h', name:'双格-横条', cells:[[0,0],[0,1]], quality:'gold', enabled:true},
+  {id:'three-i', name:'三格-I型', cells:[[0,0],[1,0],[2,0]], quality:'gold', threeSelfBonus:false, enabled:true},
+  {id:'three-l-a', name:'三格-L型A', cells:[[0,1],[1,0],[1,1]], quality:'gold', threeSelfBonus:false, enabled:true},
+  {id:'three-l-b', name:'三格-L型B', cells:[[0,0],[0,1],[1,0]], quality:'gold', threeSelfBonus:false, enabled:true},
+  {id:'four-o', name:'四格-方块', cells:[[0,0],[0,1],[1,0],[1,1]], quality:'gold', enabled:true},
+  {id:'four-l', name:'四格-L型', cells:[[0,0],[1,0],[2,0],[0,1]], quality:'gold', enabled:true},
+  {id:'four-j', name:'四格-J型', cells:[[0,1],[1,1],[2,1],[2,0]], quality:'gold', enabled:true},
+  {id:'four-i', name:'四格-I型', cells:[[0,0],[1,0],[2,0],[3,0]], quality:'gold', enabled:true},
   {id:'five-p', name:'五格-P型', cells:[[0,0],[0,1],[1,0],[1,1],[2,0]], quality:'red', enabled:true},
   {id:'five-hl', name:'五格-厚L型', cells:[[0,1],[1,0],[1,1],[2,0],[2,1]], quality:'red', enabled:true},
   {id:'five-j', name:'五格-J型', cells:[[0,1],[1,1],[2,1],[3,1],[3,0]], quality:'red', enabled:true},
   {id:'five-l', name:'五格-长L型', cells:[[0,0],[1,0],[2,0],[3,0],[0,1]], quality:'red', enabled:true},
   {id:'five-z', name:'五格-折线型', cells:[[0,1],[0,2],[1,1],[2,0],[2,1]], quality:'red', enabled:true}
 ];
+
+function createRecognitionState(){
+  return {
+    image:null,
+    sourceCanvas:null,
+    sourceCtx:null,
+    pixelData:null,
+    width:0,
+    height:0,
+    autoBounds:null,
+    bounds:null,
+    cells:[],
+    groups:[],
+    pageType:'auto',
+    detectedPageType:null,
+    candidateBounds:null,
+    candidates:[],
+    edgeOverrides:new Map(),
+    semiAuto:{active:false,assignedMask:0n,groups:[],candidates:[],pivot:null},
+    warnings:[],
+    confidence:0,
+    lowConfidenceCount:0,
+    manualMode:false,
+    dragging:null
+  };
+}
+function resetRecognitionState(keepImage=false){
+  const prev = recognitionState;
+  recognitionState = createRecognitionState();
+  recognitionState.pageType = prev.pageType || 'auto';
+  if(keepImage){
+    recognitionState.image = prev.image;
+    recognitionState.sourceCanvas = prev.sourceCanvas;
+    recognitionState.sourceCtx = prev.sourceCtx;
+    recognitionState.pixelData = prev.pixelData;
+    recognitionState.width = prev.width;
+    recognitionState.height = prev.height;
+  }
+}
 
 function cloneCells(cells){ return cells.map(c=>[c[0],c[1]]); }
 function cloneItems(src){ return src.map(x => normalizeItemRecord({...x, cells:cloneCells(x.cells), enabled:x.enabled !== false})); }
@@ -365,7 +601,9 @@ function init(){
   renderSpaceGrid();
   renderItemsTable();
   renderInventoryTable();
+  updateTableColumnLayout();
   renderResultGrid(null);
+  renderRecognitionPanel();
 }
 
 function bindEvents(){
@@ -399,6 +637,17 @@ function bindEvents(){
   });
   document.getElementById('solveBtn').addEventListener('click', solveAndRender);
   document.getElementById('cancelSolveBtn').addEventListener('click', cancelSolve);
+  document.getElementById('parallelSearch').addEventListener('change', e=>{
+    document.getElementById('workerCountLabel').hidden=!e.target.checked;
+  });
+  document.querySelectorAll('[data-column-toggle]').forEach(toggle=>{
+    toggle.addEventListener('change', e=>setOptionalColumnVisible(e.target.dataset.columnToggle,e.target.checked));
+  });
+  document.getElementById('searchMode').addEventListener('change', e=>{
+    const deep=e.target.value==='deep';
+    document.getElementById('nodeLimit').disabled=!deep;
+    document.getElementById('timeLimit').disabled=!deep;
+  });
   document.getElementById('exportBtn').addEventListener('click', exportResult);
   document.getElementById('saveBtn').addEventListener('click', saveConfig);
   document.getElementById('loadBtn').addEventListener('click', loadConfig);
@@ -420,6 +669,87 @@ function bindEvents(){
     const area = cells.length || 1;
     document.getElementById('customValue').value = qualityValue(q, area);
     document.getElementById('customBonusRate').value = defaultBonusRate(area, q, false);
+  });
+  document.getElementById('recognitionFile').addEventListener('change', async e=>{
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    await loadRecognitionImage(file);
+  });
+  document.getElementById('recognitionPasteBtn').addEventListener('click', readRecognitionClipboard);
+  document.getElementById('recognitionPageType').addEventListener('change', e=>{
+    recognitionState.pageType = e.target.value;
+    if(recognitionState.image) runRecognitionDetection();
+  });
+  document.getElementById('recognitionDetectBtn').addEventListener('click', ()=>{
+    if(!recognitionState.image) return;
+    try{
+      if(recognitionState.manualMode && recognitionState.bounds){
+        recognizeFromBounds(recognitionState.bounds, false);
+        return;
+      }
+      runRecognitionDetection();
+    }catch(error){
+      setRecognitionStatus(`识别未完成：${error?.message || '未知错误'}。请切换截图类型或手动微调边框后重试。`);
+      console.error(error);
+    }
+  });
+  document.getElementById('recognitionImportBtn').addEventListener('click', importRecognitionGroups);
+  document.getElementById('recognitionClearBtn').addEventListener('click', clearRecognitionImage);
+  document.getElementById('semiAutoStartBtn').addEventListener('click', startSemiAutoRecognition);
+  document.getElementById('semiAutoUndoBtn').addEventListener('click', undoSemiAutoRecognition);
+  document.getElementById('semiAutoResetBtn').addEventListener('click', startSemiAutoRecognition);
+  document.getElementById('addCandidateBtn').addEventListener('click', addManualRecognitionCandidate);
+  document.getElementById('replacementSolveBtn').addEventListener('click', solveReplacementPlan);
+  document.getElementById('replacementApplyBtn').addEventListener('click', applyReplacementPlan);
+  document.getElementById('recognitionManualMode').addEventListener('change', e=>{
+    recognitionState.manualMode = e.target.checked;
+    const canvas = document.getElementById('recognitionCanvas');
+    canvas.classList.toggle('manual', recognitionState.manualMode);
+    renderRecognitionOverlay();
+    syncRecognitionBoundsInputs();
+  });
+  document.getElementById('recognitionResetBoundsBtn').addEventListener('click', ()=>{
+    if(!recognitionState.autoBounds) return;
+    recognitionState.bounds = {...recognitionState.autoBounds};
+    syncRecognitionBoundsInputs();
+    renderRecognitionOverlay();
+  });
+  ['recognitionBoundX','recognitionBoundY','recognitionBoundW','recognitionBoundH'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', applyRecognitionBoundsFromInputs);
+  });
+  document.addEventListener('paste', handleRecognitionPasteEvent);
+  const recognitionCanvas = document.getElementById('recognitionCanvas');
+  recognitionCanvas.addEventListener('pointerdown', onRecognitionPointerDown);
+  recognitionCanvas.addEventListener('pointermove', onRecognitionPointerMove);
+  recognitionCanvas.addEventListener('pointerup', onRecognitionPointerUp);
+  recognitionCanvas.addEventListener('pointerleave', onRecognitionPointerUp);
+}
+
+function setOptionalColumnVisible(column,visible){
+  const className={value:'hide-value-columns','bonus-rate':'hide-bonus-rate-columns','add-count':'hide-add-count-column'}[column];
+  if(!className) return;
+  document.body.classList.toggle(className,!visible);
+  document.querySelectorAll(`[data-column-toggle="${column}"]`).forEach(x=>{ x.checked=visible; });
+  updateTableColumnLayout();
+}
+
+function updateTableColumnLayout(){
+  ['itemsTable','inventoryTable'].forEach(id=>{
+    const table=document.getElementById(id);
+    if(!table) return;
+    const visibleHeaders=[...table.querySelectorAll('thead th')].filter(th=>getComputedStyle(th).display!=='none');
+    const visibleCount=visibleHeaders.length;
+    table.style.setProperty('--visible-columns',String(Math.max(1,visibleCount)));
+    if(id==='inventoryTable'){
+      const tracks=visibleHeaders.map(th=>{
+        if(th.classList.contains('col-bonus-control')) return '1.8fr';
+        if(th.classList.contains('col-name')) return '1.25fr';
+        if(th.classList.contains('col-no') || th.classList.contains('col-action')) return '.8fr';
+        return '1fr';
+      });
+      table.style.setProperty('--column-tracks',tracks.join(' '));
+      table.querySelectorAll('thead tr,tbody tr').forEach(row=>{ row.style.gridTemplateColumns='var(--column-tracks)'; });
+    }
   });
 }
 
@@ -461,6 +791,7 @@ function renderSpaceGrid(){
       el.appendChild(cell);
     }
   }
+  renderInventoryCellSummary();
 }
 
 function renderItemsTable(){
@@ -472,14 +803,14 @@ function renderItemsTable(){
     const tr = document.createElement('tr');
     const locked = area === 5 || (area === 3 && it.threeSelfBonus);
     tr.innerHTML = `
-      <td><input type="checkbox" data-lib-k="enabled" data-i="${idx}" ${it.enabled!==false?'checked':''}></td>
-      <td><span class="shape-name">${escapeHtml(it.name)}</span><div class="hint">${area} 格</div></td>
-      <td></td>
-      <td>${qualitySelectHtml(idx, it.quality, 'lib', locked, area)}</td>
-      <td><input type="number" data-lib-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
-      <td><input type="number" data-lib-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${bonusKind(it)==='none' && it.quality !== 'red'?'disabled':''}></td>
-      <td><input type="number" data-add-count="${idx}" min="1" step="1" value="1"></td>
-      <td><button class="compact" data-add="${idx}" ${it.enabled===false?'disabled':''}>添加</button></td>`;
+      <td class="col-enabled" data-label="启用"><input type="checkbox" data-lib-k="enabled" data-i="${idx}" ${it.enabled!==false?'checked':''}></td>
+      <td class="col-name" data-label="物品"><span class="shape-name">${escapeHtml(it.name)}</span><div class="hint">${area} 格</div></td>
+      <td class="col-shape" data-label="形状"></td>
+      <td class="col-quality" data-label="品质">${qualitySelectHtml(idx, it.quality, 'lib', locked, area)}</td>
+      <td class="col-value" data-label="默认属性"><input type="number" data-lib-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
+      <td class="col-bonus-rate" data-label="加成率"><input type="number" data-lib-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${bonusKind(it)==='none' && it.quality !== 'red'?'disabled':''}></td>
+      <td class="col-add-count" data-label="添加数量"><input type="number" data-add-count="${idx}" min="1" step="1" value="1"></td>
+      <td class="col-action" data-label="操作"><button class="compact" data-add="${idx}" ${it.enabled===false?'disabled':''}>添加</button></td>`;
     tr.children[2].appendChild(makeMiniPreview(it.cells));
     tbody.appendChild(tr);
   });
@@ -515,8 +846,10 @@ function renderInventoryTable(){
   inventory = inventory.map(x=>normalizeItemRecord(x, true));
   if(inventory.length === 0){
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="9"><div class="empty">暂无已有物品。请先从物品库点击“添加”。</div></td>`;
+    tr.innerHTML = `<td class="col-empty" colspan="9"><div class="empty">暂无已有物品。请先从物品库点击“添加”。</div></td>`;
     tbody.appendChild(tr);
+    updateTableColumnLayout();
+    renderInventoryCellSummary();
     return;
   }
   inventory.forEach((it, idx)=>{
@@ -524,15 +857,15 @@ function renderInventoryTable(){
     const locked = area === 5 || (area === 3 && it.threeSelfBonus);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><b>#${it.no}</b></td>
-      <td><input class="name-input" type="text" data-inv-k="name" data-i="${idx}" value="${escapeAttr(it.name)}"></td>
-      <td></td>
-      <td>${qualitySelectHtml(idx, it.quality, 'inv', locked, area)}</td>
-      <td><input type="number" data-inv-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
-      <td>${bonusControlHtml(it, idx)}</td>
-      <td><input type="number" data-inv-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${bonusKind(it)==='none' && it.quality !== 'red'?'disabled':''}></td>
-      <td><input class="priority-input" type="number" data-inv-k="customPriority" data-i="${idx}" min="1" max="99" step="1" value="${it.customPriority ?? ''}" placeholder="默认" title="1 为最高，数字越小越优先；留空使用默认规则"></td>
-      <td><button class="danger compact" data-del-inv="${idx}">删除</button></td>`;
+      <td class="col-no" data-label="编号"><b>#${it.no}</b></td>
+      <td class="col-name" data-label="名称"><input class="name-input" type="text" data-inv-k="name" data-i="${idx}" value="${escapeAttr(it.name)}"></td>
+      <td class="col-shape" data-label="形状"></td>
+      <td class="col-quality" data-label="品质">${qualitySelectHtml(idx, it.quality, 'inv', locked, area)}</td>
+      <td class="col-value" data-label="基础属性"><input type="number" data-inv-k="value" data-i="${idx}" min="0" step="1" value="${formatPlain(it.value)}"></td>
+      <td class="col-value col-bonus-control" data-label="加成属性">${bonusControlHtml(it, idx)}</td>
+      <td class="col-bonus-rate" data-label="加成率"><input type="number" data-inv-k="bonusRate" data-i="${idx}" min="0" step="1" value="${formatPlain(it.bonusRate)}" ${bonusKind(it)==='none' && it.quality !== 'red'?'disabled':''}></td>
+      <td class="col-priority" data-label="邻接优先级"><input class="priority-input" type="number" data-inv-k="customPriority" data-i="${idx}" min="1" max="99" step="1" value="${it.customPriority ?? ''}" placeholder="默认" title="1 为最高，数字越小越优先；留空使用默认规则"></td>
+      <td class="col-action" data-label="操作"><button class="danger compact" data-del-inv="${idx}">删除</button></td>`;
     tr.children[2].appendChild(makeMiniPreview(it.cells));
     tbody.appendChild(tr);
   });
@@ -576,6 +909,22 @@ function renderInventoryTable(){
       renderResultGrid(null);
     });
   });
+  updateTableColumnLayout();
+  renderInventoryCellSummary();
+}
+
+function renderInventoryCellSummary(){
+  const itemEl=document.getElementById('inventoryItemTotal');
+  const cellEl=document.getElementById('inventoryCellTotal');
+  const balanceEl=document.getElementById('inventoryCellBalance');
+  if(!itemEl || !cellEl || !balanceEl) return;
+  const used=inventory.reduce((sum,item)=>sum+(item.cells?.length||0),0);
+  const available=active.reduce((sum,row)=>sum+row.filter(Boolean).length,0);
+  const difference=used-available;
+  itemEl.textContent=String(inventory.length);
+  cellEl.textContent=`${used} / ${available}`;
+  balanceEl.className='cell-balance '+(difference===0?'exact':difference>0?'over':'under');
+  balanceEl.textContent=difference===0?'格数刚好':difference>0?`超出 ${difference} 格`:`还差 ${Math.abs(difference)} 格`;
 }
 
 function bonusKind(it){
@@ -690,6 +1039,1650 @@ function makeMiniPreview(cells){
   return root;
 }
 
+function renderRecognitionPanel(){
+  const hasImage = !!recognitionState.image;
+  document.getElementById('recognitionDetectBtn').disabled = !hasImage;
+  document.getElementById('recognitionClearBtn').disabled = !hasImage;
+  document.getElementById('recognitionPasteBtn').disabled = !navigator.clipboard;
+  const semiTarget=recognitionState.cells.filter(cell=>cell.occupied).length;
+  const semiAssigned=recognitionState.semiAuto.groups.reduce((sum,group)=>sum+group.area,0);
+  document.getElementById('recognitionImportBtn').disabled = !recognitionState.groups.length || (recognitionState.semiAuto.active && semiAssigned < semiTarget);
+  document.getElementById('recognitionResetBoundsBtn').disabled = !recognitionState.autoBounds;
+  document.getElementById('recognitionImageSize').textContent = hasImage ? `${recognitionState.image.naturalWidth}×${recognitionState.image.naturalHeight}` : '-';
+  document.getElementById('recognitionBoundsConfidence').textContent = recognitionState.autoBounds ? `${Math.round((recognitionState.autoBounds.confidence || 0) * 100)}%` : '-';
+  document.getElementById('recognitionGroupCount').textContent = recognitionState.groups.length ? String(recognitionState.groups.length) : '-';
+  document.getElementById('recognitionLowCount').textContent = recognitionState.cells.length ? String(recognitionState.lowConfidenceCount || 0) : '-';
+  document.getElementById('recognitionManualMode').disabled = !hasImage || !recognitionState.bounds;
+  document.getElementById('semiAutoStartBtn').disabled = !recognitionState.cells.length;
+  document.getElementById('semiAutoUndoBtn').disabled = !recognitionState.semiAuto.active || !recognitionState.semiAuto.groups.length;
+  document.getElementById('semiAutoResetBtn').disabled = !recognitionState.semiAuto.active;
+  const isBattle = recognitionState.detectedPageType === 'battle';
+  document.getElementById('candidateBox').hidden = !isBattle;
+  document.getElementById('candidateBox').dataset.diagnostics = JSON.stringify(recognitionState.candidateDiagnostics || {});
+  document.getElementById('replacementBox').hidden = !isBattle;
+  document.getElementById('recognitionPageType').value = recognitionState.pageType || 'auto';
+  renderRecognitionGroupList();
+  renderRecognitionCandidates();
+  renderReplacementResult();
+  renderSemiAutoRecognition();
+  syncRecognitionBoundsInputs();
+  renderRecognitionOverlay();
+}
+
+function renderRecognitionGroupList(){
+  const root = document.getElementById('recognitionGroups');
+  root.dataset.edgeDiagnostics=JSON.stringify(recognitionState.edgeDiagnostics||{});
+  root.innerHTML = '';
+  if(!recognitionState.groups.length){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = '暂无识别结果。';
+    root.appendChild(empty);
+    return;
+  }
+  recognitionState.groups.forEach((group, idx)=>{
+    const box = document.createElement('div');
+    box.className = 'recognition-group' + (group.confidence < 0.55 ? ' low' : '');
+    const preview = makeMiniPreview(group.cells);
+    const text = document.createElement('div');
+    text.className = 'recognition-group-text';
+    text.innerHTML = `<b>#${idx+1} ${qualityName(group.quality)}｜${group.area}格</b>置信度 ${Math.round(group.confidence * 100)}%｜原图坐标 ${group.absoluteCells.map(([r,c])=>`(${r+1},${c+1})`).join(' ')}<div class="recognition-group-controls"><select data-recognition-quality="${idx}">${allowedQualitiesForArea(group.area).map(q=>`<option value="${q}" ${q===group.quality?'selected':''}>${qualityName(q)}</option>`).join('')}</select></div>`;
+    box.appendChild(preview);
+    box.appendChild(text);
+    root.appendChild(box);
+  });
+  root.querySelectorAll('[data-recognition-quality]').forEach(select=>select.addEventListener('change', e=>{
+    const group = recognitionState.groups[Number(e.target.dataset.recognitionQuality)];
+    if(!group) return;
+    group.quality = normalizeQualityForArea(e.target.value, group.area);
+    group.confidence = Math.max(group.confidence, 0.9);
+    renderRecognitionPanel();
+  }));
+}
+
+function candidateShapeOptions(selectedCells){
+  const selected=cellsKey(normalizeCells(selectedCells));
+  const seen=new Set();
+  return DEFAULT_ITEMS.flatMap(item=>orientations(item.cells,true,false).map(cells=>({name:item.name,cells}))).filter(item=>{
+    const key=cellsKey(item.cells); if(seen.has(key)) return false; seen.add(key); return true;
+  }).map(item=>`<option value="${cellsKey(item.cells)}" ${cellsKey(item.cells)===selected?'selected':''}>${item.name}</option>`).join('');
+}
+
+function renderRecognitionCandidates(){
+  const root=document.getElementById('recognitionCandidates');
+  if(!root) return;
+  root.innerHTML='';
+  if(!recognitionState.candidates.length){ root.innerHTML='<div class="empty">未稳定识别到候选，可手动添加。</div>'; return; }
+  recognitionState.candidates.forEach((candidate,index)=>{
+    const row=document.createElement('div');
+    row.className='candidate-item'+(candidate.valid?'':' invalid');
+    row.appendChild(makeMiniPreview(candidate.cells));
+    const detail=document.createElement('div');
+    detail.innerHTML=`<b>${candidate.name}｜${candidate.area}格</b><div class="recognition-group-controls"><select data-candidate-shape="${index}">${candidateShapeOptions(candidate.cells)}</select><select data-candidate-quality="${index}">${allowedQualitiesForArea(candidate.area).map(q=>`<option value="${q}" ${q===candidate.quality?'selected':''}>${qualityName(q)}</option>`).join('')}</select></div>`;
+    row.appendChild(detail);
+    const enabled=document.createElement('input'); enabled.type='checkbox'; enabled.checked=candidate.enabled; enabled.title='参与替换计算';
+    enabled.addEventListener('change',()=>{candidate.enabled=enabled.checked;replacementResult=null;renderReplacementResult();});
+    row.appendChild(enabled); root.appendChild(row);
+  });
+  root.querySelectorAll('[data-candidate-shape]').forEach(select=>select.addEventListener('change',e=>{
+    const candidate=recognitionState.candidates[Number(e.target.dataset.candidateShape)];
+    candidate.cells=e.target.value.split(';').map(pair=>pair.split(',').map(Number)); candidate.area=candidate.cells.length; candidate.valid=true;
+    candidate.quality=normalizeQualityForArea(candidate.quality,candidate.area); replacementResult=null; renderRecognitionPanel();
+  }));
+  root.querySelectorAll('[data-candidate-quality]').forEach(select=>select.addEventListener('change',e=>{
+    const candidate=recognitionState.candidates[Number(e.target.dataset.candidateQuality)]; candidate.quality=normalizeQualityForArea(e.target.value,candidate.area); replacementResult=null; renderRecognitionPanel();
+  }));
+}
+
+function addManualRecognitionCandidate(){
+  recognitionState.candidates.push({id:`candidate-${Date.now()}`,name:`候选-${recognitionState.candidates.length+1}`,cells:[[0,0],[0,1]],area:2,quality:'purple',enabled:true,valid:true,confidence:1,bounds:null});
+  replacementResult=null; renderRecognitionPanel();
+}
+
+function renderReplacementResult(){
+  const box=document.getElementById('replacementResult');
+  const apply=document.getElementById('replacementApplyBtn');
+  if(!box||!apply) return;
+  apply.disabled=!replacementResult;
+  if(!replacementResult){box.textContent='尚未计算。';return;}
+  const added=replacementResult.added.map(x=>`${x.name}（${x.cells.length}格）`).join('、')||'无';
+  const removed=replacementResult.removed.map(x=>`${x.name}（${x.cells.length}格）`).join('、')||'无';
+  box.textContent=`可行方案\n加入：${added}\n移除：${removed}\n候选总占格：${replacementResult.addedArea}\n移除物品：${replacementResult.removed.length} 件，共 ${replacementResult.removedArea} 格`;
+}
+
+function renderSemiAutoRecognition(){
+  const state=recognitionState.semiAuto;
+  const status=document.getElementById('semiAutoStatus');
+  const root=document.getElementById('semiAutoCandidates');
+  if(!state.active){status.textContent='点击开始后，每件物品只需选择一次形状。';root.innerHTML='';return;}
+  const assigned=state.groups.reduce((sum,g)=>sum+g.area,0),target=recognitionState.cells.filter(cell=>cell.occupied).length;
+  status.textContent=assigned>=target
+    ? `已完成：${state.groups.length} 件，共 ${assigned} 格。可复核品质后导入。`
+    : `已确认 ${state.groups.length} 件、${assigned}/${target} 格。点击尚未确认物品中的任意格。`;
+  root.innerHTML='';
+  state.candidates.forEach((candidate,index)=>{
+    const button=document.createElement('button');button.className='semi-candidate';button.type='button';
+    button.appendChild(makeMiniPreview(candidate.cells));
+    const text=document.createElement('span');text.textContent=`${candidate.area}格｜${candidate.absoluteCells.map(([r,c])=>`${r+1},${c+1}`).join(' ')}`;button.appendChild(text);
+    button.addEventListener('click',()=>acceptSemiAutoCandidate(index));root.appendChild(button);
+  });
+}
+
+function renderRecognitionOverlay(){
+  const canvas = document.getElementById('recognitionCanvas');
+  const ctx = canvas.getContext('2d');
+  const width = recognitionState.width || canvas.width;
+  const height = recognitionState.height || canvas.height;
+  if(canvas.width !== width || canvas.height !== height){
+    canvas.width = width;
+    canvas.height = height;
+  }
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!recognitionState.sourceCanvas){
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('载入截图后会在这里显示自动定位与识别结果', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  ctx.drawImage(recognitionState.sourceCanvas, 0, 0);
+  if(!recognitionState.bounds) return;
+  const b = recognitionState.bounds;
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,23,42,.28)';
+  ctx.beginPath();
+  ctx.rect(0,0,canvas.width,canvas.height);
+  ctx.rect(b.x,b.y,b.w,b.h);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(b.x,b.y,b.w,b.h);
+  if(recognitionState.candidateBounds){
+    const cb=recognitionState.candidateBounds;
+    ctx.strokeStyle='#f43f5e'; ctx.lineWidth=3; ctx.strokeRect(cb.x,cb.y,cb.w,cb.h);
+    recognitionState.candidates.forEach(candidate=>{ if(!candidate.bounds) return; ctx.strokeStyle=candidate.valid?'#22c55e':'#ef4444'; ctx.lineWidth=2; ctx.strokeRect(candidate.bounds.x,candidate.bounds.y,candidate.bounds.w,candidate.bounds.h); });
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.lineWidth = 1;
+  for(let i=1;i<RECOGNITION_GRID_COLS;i++){
+    const x = b.x + b.w * i / RECOGNITION_GRID_COLS;
+    ctx.beginPath();
+    ctx.moveTo(x, b.y);
+    ctx.lineTo(x, b.y + b.h);
+    ctx.stroke();
+  }
+  for(let i=1;i<RECOGNITION_GRID_ROWS;i++){
+    const y = b.y + b.h * i / RECOGNITION_GRID_ROWS;
+    ctx.beginPath();
+    ctx.moveTo(b.x, y);
+    ctx.lineTo(b.x + b.w, y);
+    ctx.stroke();
+  }
+  recognitionState.cells.forEach(cell=>{
+    if(!cell.occupied) return;
+    const style = qualityDisplayStyle(cell.quality);
+    ctx.fillStyle = style.fill + '99';
+    ctx.fillRect(cell.x + 2, cell.y + 2, cell.w - 4, cell.h - 4);
+    ctx.lineWidth = cell.lowConfidence ? 3 : 1.5;
+    ctx.strokeStyle = cell.lowConfidence ? '#ef4444' : style.border;
+    ctx.strokeRect(cell.x + 2, cell.y + 2, cell.w - 4, cell.h - 4);
+  });
+  recognitionState.groups.forEach((group, idx)=>{
+    const centerX = b.x + (group.bbox.minC + group.bbox.maxC + 1) * b.w / (RECOGNITION_GRID_COLS * 2);
+    const centerY = b.y + (group.bbox.minR + group.bbox.maxR + 1) * b.h / (RECOGNITION_GRID_ROWS * 2);
+    ctx.fillStyle = '#111827';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(idx+1), centerX, centerY);
+  });
+  recognitionState.edgeOverrides.forEach((same,key)=>{
+    const [indexA,indexB]=key.split('|').map(Number); const ar=Math.floor(indexA/RECOGNITION_GRID_COLS),ac=indexA%RECOGNITION_GRID_COLS,br=Math.floor(indexB/RECOGNITION_GRID_COLS),bc=indexB%RECOGNITION_GRID_COLS;
+    ctx.strokeStyle=same?'#22d3ee':'#ef4444';ctx.lineWidth=5;ctx.beginPath();
+    if(ar===br){const x=b.x+b.w*Math.max(ac,bc)/RECOGNITION_GRID_COLS;const y1=b.y+b.h*ar/RECOGNITION_GRID_ROWS,y2=b.y+b.h*(ar+1)/RECOGNITION_GRID_ROWS;ctx.moveTo(x,y1);ctx.lineTo(x,y2);}
+    else{const y=b.y+b.h*Math.max(ar,br)/RECOGNITION_GRID_ROWS;const x1=b.x+b.w*ac/RECOGNITION_GRID_COLS,x2=b.x+b.w*(ac+1)/RECOGNITION_GRID_COLS;ctx.moveTo(x1,y);ctx.lineTo(x2,y);}
+    ctx.stroke();
+  });
+  if(recognitionState.manualMode){
+    drawRecognitionHandles(ctx, b);
+  }
+  ctx.restore();
+}
+
+function drawRecognitionHandles(ctx, bounds){
+  const handles = [
+    [bounds.x, bounds.y],
+    [bounds.x + bounds.w, bounds.y],
+    [bounds.x + bounds.w, bounds.y + bounds.h],
+    [bounds.x, bounds.y + bounds.h]
+  ];
+  ctx.fillStyle = '#2563eb';
+  handles.forEach(([x,y])=>{
+    ctx.fillRect(x - 6, y - 6, 12, 12);
+  });
+}
+
+function syncRecognitionBoundsInputs(){
+  const ids = ['recognitionBoundX','recognitionBoundY','recognitionBoundW','recognitionBoundH'];
+  const disabled = !recognitionState.bounds;
+  ids.forEach(id=>document.getElementById(id).disabled = disabled);
+  if(disabled) return;
+  document.getElementById('recognitionBoundX').value = Math.round(recognitionState.bounds.x);
+  document.getElementById('recognitionBoundY').value = Math.round(recognitionState.bounds.y);
+  document.getElementById('recognitionBoundW').value = Math.round(recognitionState.bounds.w);
+  document.getElementById('recognitionBoundH').value = Math.round(recognitionState.bounds.h);
+}
+
+function setRecognitionStatus(message){
+  document.getElementById('recognitionStatusBox').textContent = message;
+}
+
+async function loadRecognitionImage(file){
+  const image = await loadImageFromBlob(file);
+  resetRecognitionState();
+  const maxScale = Math.min(1, 1400 / image.naturalHeight, 900 / image.naturalWidth);
+  const width = Math.max(1, Math.round(image.naturalWidth * maxScale));
+  const height = Math.max(1, Math.round(image.naturalHeight * maxScale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', {willReadFrequently:true});
+  ctx.drawImage(image, 0, 0, width, height);
+  recognitionState.image = image;
+  recognitionState.sourceCanvas = canvas;
+  recognitionState.sourceCtx = ctx;
+  recognitionState.pixelData = ctx.getImageData(0, 0, width, height).data;
+  recognitionState.width = width;
+  recognitionState.height = height;
+  recognitionState.manualMode = false;
+  document.getElementById('recognitionManualMode').checked = false;
+  document.getElementById('recognitionCanvas').classList.remove('manual');
+  setRecognitionStatus('已载入截图，正在自动定位背包并识别。');
+  renderRecognitionPanel();
+  try{ runRecognitionDetection(); }
+  catch(error){
+    setRecognitionStatus(`识别未完成：${error?.message || '未知错误'}。请切换截图类型或手动微调边框后重试。`);
+    console.error(error);
+  }
+}
+
+function loadImageFromBlob(blob){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = ()=>{
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = ()=>{
+      URL.revokeObjectURL(url);
+      reject(new Error('图片读取失败'));
+    };
+    image.src = url;
+  });
+}
+
+async function readRecognitionClipboard(){
+  if(!navigator.clipboard || !navigator.clipboard.read){
+    alert('当前浏览器不支持直接读取剪贴板图片，请使用 Ctrl+V 或手动上传文件。');
+    return;
+  }
+  try{
+    const items = await navigator.clipboard.read();
+    for(const item of items){
+      const type = item.types.find(x=>x.startsWith('image/'));
+      if(!type) continue;
+      const blob = await item.getType(type);
+      await loadRecognitionImage(blob);
+      return;
+    }
+    alert('剪贴板里没有图片。');
+  }catch(err){
+    alert(`读取剪贴板失败：${err.message || '未知错误'}`);
+  }
+}
+
+async function handleRecognitionPasteEvent(event){
+  const items = [...(event.clipboardData?.items || [])];
+  const imageItem = items.find(item=>item.type && item.type.startsWith('image/'));
+  if(!imageItem) return;
+  event.preventDefault();
+  const blob = imageItem.getAsFile();
+  if(blob) await loadRecognitionImage(blob);
+}
+
+function clearRecognitionImage(){
+  document.getElementById('recognitionFile').value = '';
+  resetRecognitionState();
+  document.getElementById('recognitionManualMode').checked = false;
+  setRecognitionStatus('尚未载入截图。');
+  renderRecognitionPanel();
+}
+
+function runRecognitionDetection(){
+  if(!recognitionState.sourceCanvas) return;
+  const bounds = detectInventoryBounds();
+  if(!bounds){
+    recognitionState.warnings = ['未能稳定定位背包，已切换到手动框选。'];
+    recognitionState.groups = [];
+    recognitionState.cells = [];
+    recognitionState.autoBounds = null;
+    recognitionState.bounds = clampRecognitionRect({
+      x:recognitionState.width * RECOGNITION_SEED_RECT.x,
+      y:recognitionState.height * RECOGNITION_SEED_RECT.y,
+      w:recognitionState.width * RECOGNITION_SEED_RECT.w,
+      h:recognitionState.height * RECOGNITION_SEED_RECT.h
+    });
+    recognitionState.manualMode = true;
+    document.getElementById('recognitionManualMode').checked = true;
+    document.getElementById('recognitionCanvas').classList.add('manual');
+    setRecognitionStatus('未能稳定定位背包，已切换到手动框选。请拖动边框或四角后再次点击“开始识别”。');
+    renderRecognitionPanel();
+    return;
+  }
+  recognitionState.autoBounds = {...bounds};
+  recognitionState.bounds = {...bounds};
+  recognizeFromBounds(bounds, true);
+}
+
+function detectInventoryBounds(){
+  const seed = {
+    x:recognitionState.width * RECOGNITION_SEED_RECT.x,
+    y:recognitionState.height * RECOGNITION_SEED_RECT.y,
+    w:recognitionState.width * RECOGNITION_SEED_RECT.w,
+    h:recognitionState.height * RECOGNITION_SEED_RECT.h
+  };
+  const aspect = RECOGNITION_GRID_COLS / RECOGNITION_GRID_ROWS;
+  let best = null;
+  for(let scale=0.88; scale<=1.14; scale+=0.03){
+    const w = seed.w * scale;
+    const h = w / aspect;
+    for(let dx=-0.08; dx<=0.08; dx+=0.02){
+      for(let dy=-0.08; dy<=0.08; dy+=0.02){
+        const rect = clampRecognitionRect({
+          x:seed.x + recognitionState.width * dx,
+          y:seed.y + recognitionState.height * dy,
+          w,
+          h
+        });
+        const score = scoreInventoryRect(rect);
+        if(!best || score > best.score) best = {rect, score};
+      }
+    }
+  }
+  if(!best) return null;
+  const refined = refineInventoryRect(best.rect);
+  const confidence = clamp((best.score - 18) / 26, 0, 1);
+  if(confidence < 0.2) return null;
+  return {...refined, confidence};
+}
+
+function refineInventoryRect(startRect){
+  let bestRect = {...startRect};
+  let bestScore = scoreInventoryRect(bestRect);
+  const passes = [
+    {pos:recognitionState.width * 0.01, size:recognitionState.width * 0.015},
+    {pos:recognitionState.width * 0.005, size:recognitionState.width * 0.008}
+  ];
+  const aspect = RECOGNITION_GRID_COLS / RECOGNITION_GRID_ROWS;
+  passes.forEach(pass=>{
+    for(let dx=-1; dx<=1; dx++){
+      for(let dy=-1; dy<=1; dy++){
+        for(let dw=-1; dw<=1; dw++){
+          const w = bestRect.w + dw * pass.size;
+          const h = w / aspect;
+          const rect = clampRecognitionRect({
+            x:bestRect.x + dx * pass.pos,
+            y:bestRect.y + dy * pass.pos,
+            w,
+            h
+          });
+          const score = scoreInventoryRect(rect);
+          if(score > bestScore){
+            bestScore = score;
+            bestRect = rect;
+          }
+        }
+      }
+    }
+  });
+  return bestRect;
+}
+
+function scoreInventoryRect(rect){
+  const cellW = rect.w / RECOGNITION_GRID_COLS;
+  const cellH = rect.h / RECOGNITION_GRID_ROWS;
+  let score = 0;
+  for(let i=1;i<RECOGNITION_GRID_COLS;i++){
+    const x = rect.x + cellW * i;
+    for(let t=0.08;t<=0.92;t+=0.08){
+      const y = rect.y + rect.h * t;
+      const left = sampleGray(x - cellW * 0.04, y);
+      const mid = sampleGray(x, y);
+      const right = sampleGray(x + cellW * 0.04, y);
+      score += Math.abs(mid - left) * 0.35 + Math.abs(mid - right) * 0.35 + Math.abs(left - right) * 0.1;
+    }
+  }
+  for(let i=1;i<RECOGNITION_GRID_ROWS;i++){
+    const y = rect.y + cellH * i;
+    for(let t=0.08;t<=0.92;t+=0.08){
+      const x = rect.x + rect.w * t;
+      const top = sampleGray(x, y - cellH * 0.04);
+      const mid = sampleGray(x, y);
+      const bottom = sampleGray(x, y + cellH * 0.04);
+      score += Math.abs(mid - top) * 0.35 + Math.abs(mid - bottom) * 0.35 + Math.abs(top - bottom) * 0.1;
+    }
+  }
+  const borderSamples = [
+    [rect.x, rect.y + rect.h * 0.5, rect.x + cellW * 0.2, rect.y + rect.h * 0.5],
+    [rect.x + rect.w, rect.y + rect.h * 0.5, rect.x + rect.w - cellW * 0.2, rect.y + rect.h * 0.5],
+    [rect.x + rect.w * 0.5, rect.y, rect.x + rect.w * 0.5, rect.y + cellH * 0.2],
+    [rect.x + rect.w * 0.5, rect.y + rect.h, rect.x + rect.w * 0.5, rect.y + rect.h - cellH * 0.2]
+  ];
+  borderSamples.forEach(([x1,y1,x2,y2])=>{
+    score += Math.abs(sampleGray(x1,y1) - sampleGray(x2,y2)) * 0.4;
+  });
+  score /= 100;
+  score -= Math.abs((rect.w / rect.h) - (RECOGNITION_GRID_COLS / RECOGNITION_GRID_ROWS)) * 8;
+  return score;
+}
+
+function recognizeFromBounds(bounds, fromAuto){
+  const safeBounds = clampRecognitionRect(bounds);
+  recognitionState.bounds = safeBounds;
+  recognitionState.detectedPageType = detectRecognitionPageType(safeBounds);
+  recognitionState.candidateBounds = recognitionState.detectedPageType === 'battle' ? buildCandidateRegion(safeBounds) : null;
+  const cells = smoothRecognitionCells(classifyGridCells(buildRecognitionGrid(safeBounds)));
+  const annotationEdges = applyRecognitionAnnotationOverrides(safeBounds, cells);
+  const groups = groupCellsToItems(cells);
+  recognitionState.cells = cells;
+  recognitionState.groups = groups;
+  recognitionState.candidates = recognitionState.detectedPageType === 'battle' ? detectRecognitionCandidates(recognitionState.candidateBounds, safeBounds) : [];
+  replacementResult = null;
+  recognitionState.lowConfidenceCount = cells.filter(cell=>cell.lowConfidence).length;
+  recognitionState.confidence = groups.length ? groups.reduce((sum, group)=>sum + group.confidence, 0) / groups.length : 0;
+  const warnings = [];
+  if(!groups.length){
+    warnings.push('没有识别到可导入的物品，请检查边框位置或更换更清晰的截图。');
+  }
+  if(groups.some(group=>group.area > 5)){
+    warnings.push('检测到大于 5 格的连通块，通常说明边框仍不准或有误识别。');
+  }
+  if(recognitionState.lowConfidenceCount){
+    warnings.push(`有 ${recognitionState.lowConfidenceCount} 个格子置信度偏低，已在预览图中标红。`);
+  }
+  if(annotationEdges){
+    warnings.push(`检测到手绘红线，已将 ${annotationEdges} 条格间关系作为硬约束。`);
+  }
+  recognitionState.warnings = warnings;
+  const totalCells = groups.reduce((sum, group)=>sum + group.area, 0);
+  const baseMessage = groups.length
+    ? `已识别为${recognitionState.detectedPageType === 'battle' ? '战斗背包页' : '法宝编辑页'}：背包 ${groups.length} 件、${totalCells} 格${recognitionState.detectedPageType === 'battle' ? `，候选 ${recognitionState.candidates.length} 件` : ''}。定位置信度 ${Math.round((recognitionState.autoBounds?.confidence || 0) * 100)}%。`
+    : '没有识别到可导入的物品。';
+  const extra = warnings.length ? `\n\n注意：\n${warnings.map(x=>`- ${x}`).join('\n')}` : '';
+  setRecognitionStatus(fromAuto && groups.length ? `${baseMessage}\n如有偏差，可切换手动微调边框后重新识别。${extra}` : `${baseMessage}${extra}`);
+  renderRecognitionPanel();
+}
+
+function isRecognitionAnnotationPixel(rgb){
+  return rgb[0] >= 210 && rgb[1] <= 95 && rgb[2] <= 75 && rgb[0] - rgb[1] >= 120;
+}
+
+function applyRecognitionAnnotationOverrides(bounds,cells){
+  if(recognitionState.detectedPageType !== 'edit') return 0;
+  let markerSamples=0;
+  for(let y=bounds.y;y<bounds.y+bounds.h;y+=3) for(let x=bounds.x;x<bounds.x+bounds.w;x+=3){if(isRecognitionAnnotationPixel(samplePixel(x,y))) markerSamples++;}
+  if(markerSamples<45) return 0;
+  recognitionState.edgeOverrides.clear();
+  const cellW=bounds.w/RECOGNITION_GRID_COLS,cellH=bounds.h/RECOGNITION_GRID_ROWS;
+  const occupied=new Set(cells.filter(c=>c.occupied).map(c=>recognitionCellKey(c.row,c.col)));
+  let sameCount=0;
+  function markerNearVertical(x,y1,y2){let count=0;for(let y=y1+5;y<y2-5;y+=3)for(let dx=-7;dx<=7;dx+=3)if(isRecognitionAnnotationPixel(samplePixel(x+dx,y)))count++;return count>=10;}
+  function markerNearHorizontal(y,x1,x2){let count=0;for(let x=x1+5;x<x2-5;x+=3)for(let dy=-7;dy<=7;dy+=3)if(isRecognitionAnnotationPixel(samplePixel(x,y+dy)))count++;return count>=10;}
+  for(let row=0;row<RECOGNITION_GRID_ROWS;row++) for(let col=0;col<RECOGNITION_GRID_COLS;col++){
+    if(!occupied.has(recognitionCellKey(row,col))) continue;
+    if(col+1<RECOGNITION_GRID_COLS&&occupied.has(recognitionCellKey(row,col+1))){const same=markerNearVertical(bounds.x+cellW*(col+1),bounds.y+cellH*row,bounds.y+cellH*(row+1));recognitionState.edgeOverrides.set(recognitionEdgeKey(row,col,row,col+1),same);if(same)sameCount++;}
+    if(row+1<RECOGNITION_GRID_ROWS&&occupied.has(recognitionCellKey(row+1,col))){const same=markerNearHorizontal(bounds.y+cellH*(row+1),bounds.x+cellW*col,bounds.x+cellW*(col+1));recognitionState.edgeOverrides.set(recognitionEdgeKey(row,col,row+1,col),same);if(same)sameCount++;}
+  }
+  return sameCount;
+}
+
+function detectRecognitionPageType(bounds){
+  if(recognitionState.pageType && recognitionState.pageType !== 'auto') return recognitionState.pageType;
+  const region = buildCandidateRegion(bounds);
+  const step = Math.max(4, Math.round(bounds.w / 120));
+  let colored = 0, total = 0;
+  for(let y=region.y;y<region.y+region.h;y+=step){
+    for(let x=region.x;x<region.x+region.w;x+=step){
+      total++;
+      if(isRecognitionTilePixel(samplePixel(x,y))) colored++;
+    }
+  }
+  return total && colored / total > 0.13 ? 'battle' : 'edit';
+}
+
+function buildCandidateRegion(bounds){
+  const top = Math.max(2, bounds.y - recognitionState.height * 0.42);
+  const bottom = Math.max(top + 10, bounds.y - recognitionState.height * 0.025);
+  return {x:Math.max(2, bounds.x), y:top, w:Math.min(bounds.w, recognitionState.width - bounds.x - 2), h:bottom-top};
+}
+
+function isRecognitionTilePixel(rgb){
+  const hsv = rgbToHsv(rgb);
+  const nearest = nearestRecognitionQuality(rgb);
+  return hsv[1] >= 0.10 && hsv[1] <= 0.62 && hsv[2] >= 0.38 && hsv[2] <= 0.92 && nearest.distance < 105;
+}
+
+function detectRecognitionCandidates(region, bagBounds){
+  if(!region) return [];
+  const step = Math.max(4, Math.round(bagBounds.w / 115));
+  const cols = Math.ceil(region.w / step), rows = Math.ceil(region.h / step);
+  const mask = Array.from({length:rows},()=>Array(cols).fill(false));
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const x = region.x + (c + 0.5) * step;
+    const y = region.y + (r + 0.5) * step;
+    mask[r][c] = isRecognitionTilePixel(samplePixel(x,y));
+  }
+  recognitionState.candidateDiagnostics={colored:mask.reduce((sum,row)=>sum+row.filter(Boolean).length,0),rows,cols};
+  const seen = Array.from({length:rows},()=>Array(cols).fill(false));
+  const components = [];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    if(!mask[r][c] || seen[r][c]) continue;
+    const queue=[[r,c]]; seen[r][c]=true; const points=[];
+    for(let qi=0;qi<queue.length;qi++){
+      const [rr,cc]=queue[qi]; points.push([rr,cc]);
+      for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]){
+        const nr=rr+dr,nc=cc+dc;
+        if(nr>=0&&nr<rows&&nc>=0&&nc<cols&&mask[nr][nc]&&!seen[nr][nc]){ seen[nr][nc]=true; queue.push([nr,nc]); }
+      }
+    }
+    if(points.length > 4) components.push(points);
+  }
+  const cellW = bagBounds.w / RECOGNITION_GRID_COLS;
+  const cellH = bagBounds.h / RECOGNITION_GRID_ROWS;
+  const mergedRaw = mergeCandidateComponents(components.map(points=>({
+    minR:Math.min(...points.map(p=>p[0])), maxR:Math.max(...points.map(p=>p[0])),
+    minC:Math.min(...points.map(p=>p[1])), maxC:Math.max(...points.map(p=>p[1])), points
+  })), cellW/step, cellH/step);
+  const merged=mergedRaw.flatMap(component=>splitWideCandidateComponent(component,3.3*cellW/step));
+  recognitionState.candidateDiagnostics.components=components.length;
+  recognitionState.candidateDiagnostics.merged=merged.length;
+  recognitionState.candidateDiagnostics.metrics=merged.map(component=>{const pw=(component.maxC-component.minC+1)*step,ph=(component.maxR-component.minR+1)*step;return {x:component.minC*step,y:component.minR*step,w:+(pw/cellW).toFixed(2),h:+(ph/cellH).toFixed(2),coverage:+(component.points.length*step*step/(pw*ph)).toFixed(2)};});
+  return merged.map((component, index)=>{
+    const pixelBounds={x:region.x+component.minC*step,y:region.y+component.minR*step,w:(component.maxC-component.minC+1)*step,h:(component.maxR-component.minR+1)*step};
+    const widthCells=pixelBounds.w/cellW,heightCells=pixelBounds.h/cellH;
+    const coverage=component.points.length*step*step/(pixelBounds.w*pixelBounds.h);
+    if(pixelBounds.x<region.x+region.w*.12||pixelBounds.y>region.y+region.h*.78||widthCells<.5||heightCells<.5||widthCells>3.3||heightCells>4.3||widthCells*heightCells>7||coverage<.08) return null;
+    const approxW=clamp(Math.round(pixelBounds.w/cellW),1,4), approxH=clamp(Math.round(pixelBounds.h/cellH),1,4);
+    const sampledArea=Math.round(component.points.length*step*step/(cellW*cellH*0.55));
+    const approxArea=clamp(Math.max(sampledArea,Math.round(approxW*approxH*.65)),2,5);
+    const shape=findClosestRecognitionShape(approxArea,approxW,approxH);
+    const quality=detectCandidateQuality(pixelBounds, shape.cells.length);
+    return {id:`candidate-${Date.now()}-${index}`,name:`候选-${index+1}`,cells:cloneCells(shape.cells),area:shape.cells.length,quality,enabled:true,valid:Math.abs(shape.cells.length-approxArea)<=1,confidence:component.points.length>20?0.7:0.45,bounds:pixelBounds};
+  }).filter(candidate=>candidate&&candidate.area>=2).sort((a,b)=>a.bounds.x-b.bounds.x);
+}
+
+function splitWideCandidateComponent(component,maxWidth){
+  const width=component.maxC-component.minC+1;
+  if(width<=maxWidth) return [component];
+  const histogram=Array(width).fill(0); component.points.forEach(([,c])=>histogram[c-component.minC]++);
+  const from=Math.floor(width*.25),to=Math.ceil(width*.75);
+  let split=from;
+  for(let i=from+1;i<to;i++) if(histogram[i]<histogram[split]) split=i;
+  const splitCol=component.minC+split;
+  const parts=[component.points.filter(([,c])=>c<splitCol),component.points.filter(([,c])=>c>=splitCol)].filter(points=>points.length>4);
+  if(parts.length<2) return [component];
+  return parts.map(points=>({minR:Math.min(...points.map(p=>p[0])),maxR:Math.max(...points.map(p=>p[0])),minC:Math.min(...points.map(p=>p[1])),maxC:Math.max(...points.map(p=>p[1])),points}));
+}
+
+function mergeCandidateComponents(components, cellCols, cellRows){
+  const list=components.slice();
+  let changed=true;
+  while(changed){
+    changed=false;
+    outer:for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){
+      const a=list[i],b=list[j];
+      const gapX=Math.max(0,Math.max(a.minC,b.minC)-Math.min(a.maxC,b.maxC)-1);
+      const gapY=Math.max(0,Math.max(a.minR,b.minR)-Math.min(a.maxR,b.maxR)-1);
+      if(gapX<=cellCols*.12 && gapY<=cellRows*.12){
+        const points=a.points.concat(b.points);
+        list[i]={minR:Math.min(a.minR,b.minR),maxR:Math.max(a.maxR,b.maxR),minC:Math.min(a.minC,b.minC),maxC:Math.max(a.maxC,b.maxC),points};
+        list.splice(j,1); changed=true; break outer;
+      }
+    }
+  }
+  return list;
+}
+
+function findClosestRecognitionShape(area,width,height){
+  return RECOGNITION_SHAPE_LIBRARY.reduce((best,shape)=>{
+    const score=Math.abs(shape.area-area)*4+Math.abs(shape.width-width)+Math.abs(shape.height-height);
+    return !best||score<best.score?{...shape,score}:best;
+  },null) || {cells:[[0,0]],area:1,width:1,height:1};
+}
+
+function detectCandidateQuality(bounds,area){
+  const samples=[];
+  for(let y=.12;y<=.88;y+=.19) for(let x=.12;x<=.88;x+=.19){
+    const rgb=samplePixel(bounds.x+bounds.w*x,bounds.y+bounds.h*y);
+    if(isRecognitionTilePixel(rgb)) samples.push(classifyRecognitionQualitySample(rgb));
+  }
+  const counts=new Map(); samples.forEach(x=>counts.set(x.quality,(counts.get(x.quality)||0)+x.confidence));
+  const quality=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0] || 'purple';
+  return normalizeQualityForArea(quality,area);
+}
+
+function buildRecognitionGrid(bounds){
+  const cells = [];
+  const cellW = bounds.w / RECOGNITION_GRID_COLS;
+  const cellH = bounds.h / RECOGNITION_GRID_ROWS;
+  for(let row=0;row<RECOGNITION_GRID_ROWS;row++){
+    for(let col=0;col<RECOGNITION_GRID_COLS;col++){
+      cells.push({
+        row,
+        col,
+        x:bounds.x + col * cellW,
+        y:bounds.y + row * cellH,
+        w:cellW,
+        h:cellH
+      });
+    }
+  }
+  return cells;
+}
+
+function classifyGridCells(grid){
+  return grid.map(cell=>{
+    const qualityInfo = detectCellQuality(cell);
+    const occupancyInfo = detectCellOccupancy(cell, qualityInfo.rgb);
+    const edgeProfile = measureRecognitionCellEdges(cell);
+    const lowConfidence = occupancyInfo.confidence < 0.45 || qualityInfo.confidence < 0.35;
+    return {
+      ...cell,
+      occupied:occupancyInfo.occupied,
+      occupiedScore:occupancyInfo.score,
+      occupiedConfidence:occupancyInfo.confidence,
+      quality:qualityInfo.quality,
+      qualityConfidence:qualityInfo.confidence,
+      qualityDistance:qualityInfo.distance,
+      qualityRgb:qualityInfo.rgb,
+      qualityScores:qualityInfo.scores,
+      edgeProfile,
+      lowConfidence
+    };
+  });
+}
+
+function detectCellQuality(cell){
+  const samples = [
+    sampleRegionMean(cell.x + cell.w * 0.24, cell.y + cell.h * 0.04, cell.w * 0.52, cell.h * 0.06, 5, 3),
+    sampleRegionMean(cell.x + cell.w * 0.24, cell.y + cell.h * 0.90, cell.w * 0.52, cell.h * 0.06, 5, 3),
+    sampleRegionMean(cell.x + cell.w * 0.04, cell.y + cell.h * 0.24, cell.w * 0.06, cell.h * 0.52, 3, 5),
+    sampleRegionMean(cell.x + cell.w * 0.90, cell.y + cell.h * 0.24, cell.w * 0.06, cell.h * 0.52, 3, 5)
+  ];
+  const ranked = samples.map(sample=>classifyRecognitionQualitySample(sample));
+  const scores = new Map();
+  ranked.forEach((entry, idx)=>{
+    const prev = scores.get(entry.quality) || {weight:0, sample:samples[idx], distance:0, confidence:0};
+    prev.weight += entry.weight;
+    prev.distance += entry.distance;
+    prev.confidence += entry.confidence;
+    scores.set(entry.quality, prev);
+  });
+  const winner = [...scores.entries()].sort((a,b)=>b[1].weight - a[1].weight)[0];
+  const quality = winner ? winner[0] : 'red';
+  const own = winner ? winner[1] : {weight:0, sample:[196,128,108], distance:200, confidence:0.2};
+  const sorted = [...scores.entries()].sort((a,b)=>b[1].weight - a[1].weight);
+  const runnerWeight = sorted[1]?.[1].weight || 0;
+  const confidence = clamp(((own.confidence / samples.length) + (own.weight - runnerWeight) / 360), 0.12, 0.98);
+  const normalizedScores = {};
+  scores.forEach((value, key)=>{
+    normalizedScores[key] = {
+      weight:value.weight,
+      distance:value.distance / samples.length,
+      confidence:clamp(value.confidence / samples.length, 0.05, 0.99)
+    };
+  });
+  return {quality, confidence, distance:own.distance, rgb:own.sample, scores:normalizedScores};
+}
+
+function detectCellOccupancy(cell, backgroundRgb){
+  let total = 0, diffStrong = 0, diffMid = 0, dark = 0, saturated = 0, edge = 0, edgeTotal = 0;
+  const stepsX = 11, stepsY = 11;
+  let prevRow = null;
+  for(let sy=0;sy<stepsY;sy++){
+    const rowPixels = [];
+    for(let sx=0;sx<stepsX;sx++){
+      const x = cell.x + cell.w * (0.14 + (sx / (stepsX - 1)) * 0.72);
+      const y = cell.y + cell.h * (0.14 + (sy / (stepsY - 1)) * 0.72);
+      const rgb = samplePixel(x, y);
+      rowPixels.push(rgb);
+      const diff = colorDistance(rgb, backgroundRgb);
+      const spread = Math.max(rgb[0], rgb[1], rgb[2]) - Math.min(rgb[0], rgb[1], rgb[2]);
+      const gray = grayOf(rgb);
+      total++;
+      if(diff > 62) diffStrong++;
+      if(diff > 38) diffMid++;
+      if(gray < 92) dark++;
+      if(spread > 74) saturated++;
+      if(sx > 0){
+        edgeTotal++;
+        if(colorDistance(rgb, rowPixels[sx - 1]) > 48) edge++;
+      }
+      if(prevRow){
+        edgeTotal++;
+        if(colorDistance(rgb, prevRow[sx]) > 48) edge++;
+      }
+    }
+    prevRow = rowPixels;
+  }
+  const strongRatio = diffStrong / total;
+  const midRatio = diffMid / total;
+  const darkRatio = dark / total;
+  const satRatio = saturated / total;
+  const edgeRatio = edgeTotal ? edge / edgeTotal : 0;
+  const score = strongRatio * 0.46 + midRatio * 0.18 + darkRatio * 0.18 + satRatio * 0.08 + edgeRatio * 0.22;
+  const occupied = score > 0.24 || (strongRatio > 0.16 && edgeRatio > 0.09);
+  const confidence = clamp(Math.abs(score - 0.24) / 0.28, 0.05, 0.99);
+  return {occupied, confidence, score};
+}
+
+function smoothRecognitionCells(cells){
+  const map = new Map(cells.map(cell=>[`${cell.row},${cell.col}`, cell]));
+  const neighborsOf = cell=>[
+    map.get(`${cell.row-1},${cell.col}`),
+    map.get(`${cell.row+1},${cell.col}`),
+    map.get(`${cell.row},${cell.col-1}`),
+    map.get(`${cell.row},${cell.col+1}`)
+  ].filter(Boolean);
+  cells.forEach(cell=>{
+    const occupiedNeighbors = neighborsOf(cell).filter(x=>x.occupied);
+    if(!cell.occupied && cell.occupiedScore > 0.18 && occupiedNeighbors.length >= 2){
+      cell.occupied = true;
+      cell.occupiedConfidence = Math.max(cell.occupiedConfidence, 0.45);
+      cell.lowConfidence = true;
+    }
+  });
+  cells.forEach(cell=>{
+    const occupiedNeighbors = neighborsOf(cell).filter(x=>x.occupied);
+    if(cell.occupied && cell.occupiedScore < 0.18 && occupiedNeighbors.length === 0){
+      cell.occupied = false;
+      cell.lowConfidence = true;
+    }
+  });
+  return cells;
+}
+
+function groupCellsToItems(cells){
+  const occupied = cells.filter(cell=>cell.occupied);
+  if(!occupied.length) return [];
+  const occupiedMap = new Map(occupied.map(cell=>[recognitionCellKey(cell.row, cell.col), cell]));
+  const adjacencyMap = buildRecognitionAdjacencyMap(occupiedMap);
+  recognitionState.edgeDiagnostics=Object.fromEntries([...adjacencyMap.entries()].map(([key,value])=>[key,+value.score.toFixed(3)]));
+  const placements = buildRecognitionPlacements(occupiedMap, adjacencyMap);
+  const solved = solveRecognitionPlacements(occupiedMap, placements);
+  if(solved.length) return solved.sort((a,b)=>a.bbox.minR-b.bbox.minR || a.bbox.minC-b.bbox.minC);
+  return buildRecognitionFallbackGroups(occupied);
+}
+
+function recognitionCellKey(row, col){
+  return `${row},${col}`;
+}
+
+function recognitionCellIndex(row, col){
+  return row * RECOGNITION_GRID_COLS + col;
+}
+
+function recognitionCellBit(row, col){
+  return 1n << BigInt(recognitionCellIndex(row, col));
+}
+
+function recognitionEdgeKey(rowA, colA, rowB, colB){
+  const indexA = recognitionCellIndex(rowA, colA);
+  const indexB = recognitionCellIndex(rowB, colB);
+  return indexA < indexB ? `${indexA}|${indexB}` : `${indexB}|${indexA}`;
+}
+
+function buildRecognitionAdjacencyMap(occupiedMap){
+  const adjacencyMap = new Map();
+  occupiedMap.forEach(cell=>{
+    const right = occupiedMap.get(recognitionCellKey(cell.row, cell.col + 1));
+    if(right){
+      const key=recognitionEdgeKey(cell.row, cell.col, right.row, right.col); const measured=measureRecognitionAdjacency(cell, right); const override=recognitionState.edgeOverrides.get(key);
+      adjacencyMap.set(key,override===undefined?measured:{...measured,score:override?1:0,manual:true});
+    }
+    const down = occupiedMap.get(recognitionCellKey(cell.row + 1, cell.col));
+    if(down){
+      const key=recognitionEdgeKey(cell.row, cell.col, down.row, down.col); const measured=measureRecognitionAdjacency(cell, down); const override=recognitionState.edgeOverrides.get(key);
+      adjacencyMap.set(key,override===undefined?measured:{...measured,score:override?1:0,manual:true});
+    }
+  });
+  return adjacencyMap;
+}
+
+function getRecognitionAdjacency(adjacencyMap, rowA, colA, rowB, colB){
+  return adjacencyMap.get(recognitionEdgeKey(rowA, colA, rowB, colB)) || {score:0.5, diff:0, borderContrast:0};
+}
+
+function buildRecognitionPlacements(occupiedMap, adjacencyMap){
+  const placements = [];
+  const seenMasks = new Set();
+  RECOGNITION_SHAPE_LIBRARY.forEach(shape=>{
+    const maxRow = RECOGNITION_GRID_ROWS - shape.height;
+    const maxCol = RECOGNITION_GRID_COLS - shape.width;
+    for(let row=0;row<=maxRow;row++){
+      for(let col=0;col<=maxCol;col++){
+        const absoluteCells = [];
+        const placementCells = [];
+        let mask = 0n;
+        let valid = true;
+        shape.cells.forEach(([dr, dc])=>{
+          if(!valid) return;
+          const rr = row + dr;
+          const cc = col + dc;
+          const cell = occupiedMap.get(recognitionCellKey(rr, cc));
+          if(!cell){
+            valid = false;
+            return;
+          }
+          absoluteCells.push([rr, cc]);
+          placementCells.push(cell);
+          mask |= recognitionCellBit(rr, cc);
+        });
+        if(!valid) continue;
+        const maskKey = mask.toString();
+        if(seenMasks.has(maskKey)) continue;
+        seenMasks.add(maskKey);
+        const scored = scoreRecognitionPlacement(placementCells, absoluteCells, occupiedMap, adjacencyMap);
+        placements.push({
+          id:placements.length,
+          mask,
+          area:absoluteCells.length,
+          cells:normalizeCells(absoluteCells),
+          absoluteCells:absoluteCells.sort((a,b)=>a[0]-b[0]||a[1]-b[1]),
+          bbox:buildRecognitionBBox(absoluteCells),
+          quality:scored.quality,
+          confidence:scored.confidence,
+          score:scored.score
+        });
+      }
+    }
+  });
+  return placements.sort((a,b)=>b.score-a.score || b.area-a.area);
+}
+
+function scoreRecognitionPlacement(placementCells, absoluteCells, occupiedMap, adjacencyMap){
+  const cellSet = new Set(absoluteCells.map(([row, col])=>recognitionCellKey(row, col)));
+  let internalScore = 0;
+  let internalCount = 0;
+  let boundaryScore = 0;
+  let boundaryCount = 0;
+  let hardConflict = false;
+  absoluteCells.forEach(([row, col])=>{
+    const rightKey = recognitionCellKey(row, col + 1);
+    const downKey = recognitionCellKey(row + 1, col);
+    if(cellSet.has(rightKey)){
+      const edge=getRecognitionAdjacency(adjacencyMap, row, col, row, col + 1); if(edge.manual&&edge.score===0) hardConflict=true; internalScore += edge.score;
+      internalCount++;
+    }
+    if(cellSet.has(downKey)){
+      const edge=getRecognitionAdjacency(adjacencyMap, row, col, row + 1, col); if(edge.manual&&edge.score===0) hardConflict=true; internalScore += edge.score;
+      internalCount++;
+    }
+    [[row - 1, col], [row + 1, col], [row, col - 1], [row, col + 1]].forEach(([nr, nc])=>{
+      const neighborKey = recognitionCellKey(nr, nc);
+      if(!occupiedMap.has(neighborKey) || cellSet.has(neighborKey)) return;
+      const edge=getRecognitionAdjacency(adjacencyMap, row, col, nr, nc); if(edge.manual&&edge.score===1) hardConflict=true; boundaryScore += 0.5 * (1 - edge.score);
+      boundaryCount++;
+    });
+  });
+  const qualityInfo = selectRecognitionPlacementQuality(placementCells);
+  let qualityScore = 0;
+  placementCells.forEach(cell=>{
+    const exact = cell.qualityScores?.[qualityInfo.quality];
+    if(exact){
+      qualityScore += clamp((exact.weight || 0) / 160, 0, 1.1) * clamp(exact.confidence || 0.4, 0.1, 1);
+      return;
+    }
+    qualityScore += cell.quality === qualityInfo.quality ? cell.qualityConfidence : cell.qualityConfidence * 0.15;
+  });
+  const occupiedScore = placementCells.reduce((sum, cell)=>sum + cell.occupiedConfidence, 0);
+  const internalMean = internalCount ? internalScore / internalCount : 0.5;
+  const boundaryMean = boundaryCount ? boundaryScore / boundaryCount : 0.2;
+  const qualityMean = qualityScore / placementCells.length;
+  const internalEvidence = internalScore - internalCount * 0.5;
+  const confidence = clamp(
+    internalMean * 0.45 +
+    boundaryMean * 0.15 +
+    qualityMean * 0.28 +
+    (occupiedScore / placementCells.length) * 0.12,
+    0.18,
+    0.99
+  );
+  const isEditPage = recognitionState.detectedPageType === 'edit';
+  const score = (hardConflict ? -1000000 : 0) +
+    (isEditPage ? internalEvidence * 3.2 : internalScore * 1.9) +
+    boundaryScore * 1.1 +
+    qualityScore * 1.45 +
+    qualityInfo.confidence * placementCells.length * 0.35 +
+    occupiedScore * 0.12 +
+    (isEditPage ? (placementCells.length - 1) * 1.65 : 0);
+  return {quality:qualityInfo.quality, confidence, score};
+}
+
+function selectRecognitionPlacementQuality(cells){
+  const totals = new Map(RECOGNITION_QUALITY_ORDER.map(quality=>[quality, 0]));
+  cells.forEach(cell=>{
+    if(cell.qualityScores){
+      RECOGNITION_QUALITY_ORDER.forEach(quality=>{
+        const entry = cell.qualityScores[quality];
+        if(entry) totals.set(quality, (totals.get(quality) || 0) + (entry.weight || 0) * clamp(entry.confidence || 0.4, 0.1, 1));
+      });
+      return;
+    }
+    totals.set(cell.quality, (totals.get(cell.quality) || 0) + Math.max(0.1, cell.qualityConfidence) * 100);
+  });
+  const allowed = allowedQualitiesForArea(cells.length);
+  const ranked = allowed
+    .map(quality=>({quality, weight:totals.get(quality) || 0}))
+    .sort((a,b)=>b.weight-a.weight);
+  const winner = ranked[0]?.quality || normalizeQualityForArea(cells[0]?.quality || 'purple', cells.length);
+  const winnerWeight = ranked[0]?.weight || 0;
+  const runnerWeight = ranked[1]?.weight || 0;
+  const totalWeight = ranked.reduce((sum, entry)=>sum + entry.weight, 0) || 1;
+  const confidence = clamp((winnerWeight - runnerWeight) / totalWeight + winnerWeight / (cells.length * 180), 0.12, 0.98);
+  return {quality:winner, confidence};
+}
+
+function solveRecognitionPlacements(occupiedMap, placements){
+  if(!placements.length) return [];
+  let fullMask = 0n;
+  occupiedMap.forEach(cell=>{
+    fullMask |= recognitionCellBit(cell.row, cell.col);
+  });
+  const placementsByCell = Array.from({length:RECOGNITION_GRID_COLS * RECOGNITION_GRID_ROWS}, ()=>[]);
+  placements.forEach(placement=>{
+    placement.absoluteCells.forEach(([row, col])=>{
+      placementsByCell[recognitionCellIndex(row, col)].push(placement);
+    });
+  });
+  placementsByCell.forEach(list=>list.sort((a,b)=>b.score-a.score || b.area-a.area));
+  const memo = new Map();
+  const deadline = Date.now() + 1200;
+  let visitedStates = 0;
+  let cutoff = false;
+  function solve(mask){
+    if(++visitedStates > 80000 || Date.now() > deadline){ cutoff = true; return null; }
+    if(mask === 0n) return {score:0, pickId:null, nextMask:0n};
+    const memoKey = mask.toString();
+    if(memo.has(memoKey)) return memo.get(memoKey);
+    const pivot = chooseRecognitionPivotCell(mask, placementsByCell);
+    if(pivot === -1){
+      const empty = {score:0, pickId:null, nextMask:0n};
+      memo.set(memoKey, empty);
+      return empty;
+    }
+    let best = null;
+    const candidates = placementsByCell[pivot].filter(placement=>(placement.mask & mask) === placement.mask);
+    for(const placement of candidates){
+      const nextMask = mask & ~placement.mask;
+      const nextState = solve(nextMask);
+      if(!nextState) continue;
+      const totalScore = placement.score + nextState.score;
+      if(!best || totalScore > best.score){
+        best = {score:totalScore, pickId:placement.id, nextMask};
+      }
+    }
+    memo.set(memoKey, best);
+    return best;
+  }
+  const root = solve(fullMask);
+  if(!root) return greedyRecognitionCover(fullMask, placementsByCell);
+  const byId = new Map(placements.map(placement=>[placement.id, placement]));
+  const groups = [];
+  let currentMask = fullMask;
+  while(currentMask !== 0n){
+    const state = memo.get(currentMask.toString()) || solve(currentMask);
+    if(!state || state.pickId === null || state.pickId === undefined) return [];
+    const placement = byId.get(state.pickId);
+    if(!placement) return [];
+    groups.push({
+      quality:placement.quality,
+      area:placement.area,
+      cells:cloneCells(placement.cells),
+      absoluteCells:cloneCells(placement.absoluteCells),
+      bbox:{...placement.bbox},
+      confidence:placement.confidence,
+      lowConfidence:placement.confidence < 0.58
+    });
+    currentMask = state.nextMask;
+  }
+  return groups;
+}
+
+function greedyRecognitionCover(fullMask,placementsByCell){
+  const groups=[]; let mask=fullMask;
+  while(mask!==0n){
+    const pivot=chooseRecognitionPivotCell(mask,placementsByCell);
+    if(pivot<0) break;
+    const candidates=placementsByCell[pivot].filter(p=>(p.mask&mask)===p.mask).sort((a,b)=>b.score-a.score||b.area-a.area);
+    const placement=candidates[0]; if(!placement) return [];
+    groups.push({quality:placement.quality,area:placement.area,cells:cloneCells(placement.cells),absoluteCells:cloneCells(placement.absoluteCells),bbox:{...placement.bbox},confidence:Math.min(placement.confidence,.5),lowConfidence:true});
+    mask&=~placement.mask;
+  }
+  return groups;
+}
+
+function chooseRecognitionPivotCell(mask, placementsByCell){
+  let bestIndex = -1;
+  let bestCount = Infinity;
+  for(let index=0;index<RECOGNITION_GRID_COLS * RECOGNITION_GRID_ROWS;index++){
+    const bit = 1n << BigInt(index);
+    if((mask & bit) === 0n) continue;
+    let count = 0;
+    for(const placement of placementsByCell[index]){
+      if((placement.mask & mask) === placement.mask) count++;
+    }
+    if(count < bestCount){
+      bestCount = count;
+      bestIndex = index;
+      if(count <= 1) break;
+    }
+  }
+  return bestIndex;
+}
+
+function buildRecognitionBBox(cells){
+  return {
+    minR:Math.min(...cells.map(item=>item[0])),
+    maxR:Math.max(...cells.map(item=>item[0])),
+    minC:Math.min(...cells.map(item=>item[1])),
+    maxC:Math.max(...cells.map(item=>item[1]))
+  };
+}
+
+function buildRecognitionFallbackGroups(occupied){
+  return occupied
+    .map(cell=>({
+      quality:cell.quality,
+      area:1,
+      cells:[[0,0]],
+      absoluteCells:[[cell.row, cell.col]],
+      bbox:buildRecognitionBBox([[cell.row, cell.col]]),
+      confidence:Math.min(cell.occupiedConfidence, cell.qualityConfidence),
+      lowConfidence:true
+    }))
+    .sort((a,b)=>a.bbox.minR-b.bbox.minR || a.bbox.minC-b.bbox.minC);
+}
+
+function measureRecognitionAdjacency(cellA, cellB){
+  let insideA, insideB, borderA, borderB, frameA, frameB;
+  const segmentScores = [];
+  const innerDiffs = [];
+  const borderContrasts = [];
+  const borderDiffs = [];
+  if(cellA.row === cellB.row){
+    const left = cellA.col < cellB.col ? cellA : cellB;
+    const right = left === cellA ? cellB : cellA;
+    insideA = left.edgeProfile?.right?.innerRgb || sampleRegionMean(left.x + left.w * 0.68, left.y + left.h * 0.18, left.w * 0.12, left.h * 0.64, 3, 5);
+    insideB = right.edgeProfile?.left?.innerRgb || sampleRegionMean(right.x + right.w * 0.20, right.y + right.h * 0.18, right.w * 0.12, right.h * 0.64, 3, 5);
+    borderA = left.edgeProfile?.right?.borderRgb || sampleRegionMean(left.x + left.w * 0.90, left.y + left.h * 0.18, left.w * 0.06, left.h * 0.64, 2, 5);
+    borderB = right.edgeProfile?.left?.borderRgb || sampleRegionMean(right.x + right.w * 0.04, right.y + right.h * 0.18, right.w * 0.06, right.h * 0.64, 2, 5);
+    frameA = left.edgeProfile?.right?.strength || 0.5;
+    frameB = right.edgeProfile?.left?.strength || 0.5;
+    [0.16, 0.34, 0.5, 0.66, 0.84].forEach(t=>{
+      const bandTop = left.y + left.h * Math.max(0.04, t - 0.08);
+      const bandHeight = left.h * 0.16;
+      const segInsideA = sampleRegionMean(left.x + left.w * 0.70, bandTop, left.w * 0.08, bandHeight, 2, 3);
+      const segInsideB = sampleRegionMean(right.x + right.w * 0.22, bandTop, right.w * 0.08, bandHeight, 2, 3);
+      const segBorderA = sampleRegionMean(left.x + left.w * 0.90, bandTop, left.w * 0.05, bandHeight, 2, 3);
+      const segBorderB = sampleRegionMean(right.x + right.w * 0.05, bandTop, right.w * 0.05, bandHeight, 2, 3);
+      const segDiff = colorDistance(segInsideA, segInsideB);
+      const segBorderContrast = Math.abs(((grayOf(segBorderA) + grayOf(segBorderB)) / 2) - ((grayOf(segInsideA) + grayOf(segInsideB)) / 2));
+      const segBorderDiff = colorDistance(segBorderA, segBorderB);
+      innerDiffs.push(segDiff);
+      borderContrasts.push(segBorderContrast);
+      borderDiffs.push(segBorderDiff);
+      segmentScores.push(
+        clamp(1 - segDiff / 92, 0, 1) * 0.56 +
+        clamp(1 - segBorderContrast / 28, 0, 1) * 0.28 +
+        clamp(1 - segBorderDiff / 70, 0, 1) * 0.16
+      );
+    });
+  }else{
+    const top = cellA.row < cellB.row ? cellA : cellB;
+    const bottom = top === cellA ? cellB : cellA;
+    insideA = top.edgeProfile?.bottom?.innerRgb || sampleRegionMean(top.x + top.w * 0.18, top.y + top.h * 0.68, top.w * 0.64, top.h * 0.12, 5, 3);
+    insideB = bottom.edgeProfile?.top?.innerRgb || sampleRegionMean(bottom.x + bottom.w * 0.18, bottom.y + bottom.h * 0.20, bottom.w * 0.64, bottom.h * 0.12, 5, 3);
+    borderA = top.edgeProfile?.bottom?.borderRgb || sampleRegionMean(top.x + top.w * 0.18, top.y + top.h * 0.90, top.w * 0.64, top.h * 0.06, 5, 2);
+    borderB = bottom.edgeProfile?.top?.borderRgb || sampleRegionMean(bottom.x + bottom.w * 0.18, bottom.y + bottom.h * 0.04, bottom.w * 0.64, bottom.h * 0.06, 5, 2);
+    frameA = top.edgeProfile?.bottom?.strength || 0.5;
+    frameB = bottom.edgeProfile?.top?.strength || 0.5;
+    [0.16, 0.34, 0.5, 0.66, 0.84].forEach(t=>{
+      const bandLeft = top.x + top.w * Math.max(0.04, t - 0.08);
+      const bandWidth = top.w * 0.16;
+      const segInsideA = sampleRegionMean(bandLeft, top.y + top.h * 0.70, bandWidth, top.h * 0.08, 3, 2);
+      const segInsideB = sampleRegionMean(bandLeft, bottom.y + bottom.h * 0.22, bandWidth, bottom.h * 0.08, 3, 2);
+      const segBorderA = sampleRegionMean(bandLeft, top.y + top.h * 0.90, bandWidth, top.h * 0.05, 3, 2);
+      const segBorderB = sampleRegionMean(bandLeft, bottom.y + bottom.h * 0.05, bandWidth, bottom.h * 0.05, 3, 2);
+      const segDiff = colorDistance(segInsideA, segInsideB);
+      const segBorderContrast = Math.abs(((grayOf(segBorderA) + grayOf(segBorderB)) / 2) - ((grayOf(segInsideA) + grayOf(segInsideB)) / 2));
+      const segBorderDiff = colorDistance(segBorderA, segBorderB);
+      innerDiffs.push(segDiff);
+      borderContrasts.push(segBorderContrast);
+      borderDiffs.push(segBorderDiff);
+      segmentScores.push(
+        clamp(1 - segDiff / 92, 0, 1) * 0.56 +
+        clamp(1 - segBorderContrast / 28, 0, 1) * 0.28 +
+        clamp(1 - segBorderDiff / 70, 0, 1) * 0.16
+      );
+    });
+  }
+  const diff = colorDistance(insideA, insideB);
+  const borderDiff = colorDistance(borderA, borderB);
+  const borderContrast = Math.abs(((grayOf(borderA) + grayOf(borderB)) / 2) - ((grayOf(insideA) + grayOf(insideB)) / 2));
+  const frameStrength = (frameA + frameB) / 2;
+  const segmentScore = topAverage(segmentScores, 3);
+  const segmentDiff = medianOf(innerDiffs) || diff;
+  const segmentBorderDiff = medianOf(borderDiffs) || borderDiff;
+  const segmentBorderContrast = medianOf(borderContrasts) || borderContrast;
+  let score =
+    segmentScore * 0.46 +
+    clamp(1 - frameStrength / 0.42, 0, 1) * 0.48 +
+    clamp(1 - segmentDiff / 88, 0, 1) * 0.2 +
+    clamp(1 - segmentBorderDiff / 72, 0, 1) * 0.08 +
+    clamp(1 - segmentBorderContrast / 32, 0, 1) * 0.06;
+  if(cellA.quality === cellB.quality) score += 0.04;
+  if(frameStrength > 0.34) score -= 0.18;
+  if(segmentDiff > 74) score -= 0.06;
+  if(segmentBorderContrast > 30) score -= 0.06;
+  return {score:clamp(score, 0, 1), diff:segmentDiff, borderDiff:segmentBorderDiff, borderContrast:segmentBorderContrast, frameStrength, segmentScore};
+}
+
+function measureRecognitionCellEdges(cell){
+  return {
+    left:sampleRecognitionEdgeProfile(cell, 'left'),
+    right:sampleRecognitionEdgeProfile(cell, 'right'),
+    top:sampleRecognitionEdgeProfile(cell, 'top'),
+    bottom:sampleRecognitionEdgeProfile(cell, 'bottom')
+  };
+}
+
+function sampleRecognitionEdgeProfile(cell, side){
+  const borderSamples = [];
+  const innerSamples = [];
+  const strengths = [];
+  [0.22, 0.5, 0.78].forEach(t=>{
+    let border;
+    let inner;
+    if(side === 'left'){
+      border = sampleRegionMean(cell.x + cell.w * 0.04, cell.y + cell.h * (t - 0.09), cell.w * 0.08, cell.h * 0.18, 2, 3);
+      inner = sampleRegionMean(cell.x + cell.w * 0.16, cell.y + cell.h * (t - 0.09), cell.w * 0.10, cell.h * 0.18, 2, 3);
+    }else if(side === 'right'){
+      border = sampleRegionMean(cell.x + cell.w * 0.88, cell.y + cell.h * (t - 0.09), cell.w * 0.08, cell.h * 0.18, 2, 3);
+      inner = sampleRegionMean(cell.x + cell.w * 0.74, cell.y + cell.h * (t - 0.09), cell.w * 0.10, cell.h * 0.18, 2, 3);
+    }else if(side === 'top'){
+      border = sampleRegionMean(cell.x + cell.w * (t - 0.09), cell.y + cell.h * 0.04, cell.w * 0.18, cell.h * 0.08, 3, 2);
+      inner = sampleRegionMean(cell.x + cell.w * (t - 0.09), cell.y + cell.h * 0.16, cell.w * 0.18, cell.h * 0.10, 3, 2);
+    }else{
+      border = sampleRegionMean(cell.x + cell.w * (t - 0.09), cell.y + cell.h * 0.88, cell.w * 0.18, cell.h * 0.08, 3, 2);
+      inner = sampleRegionMean(cell.x + cell.w * (t - 0.09), cell.y + cell.h * 0.74, cell.w * 0.18, cell.h * 0.10, 3, 2);
+    }
+    borderSamples.push(border);
+    innerSamples.push(inner);
+    strengths.push(colorDistance(border, inner) / 120 + Math.abs(grayOf(border) - grayOf(inner)) / 90);
+  });
+  return {
+    strength:clamp(medianOf(strengths), 0, 1),
+    borderRgb:meanRgb(borderSamples),
+    innerRgb:meanRgb(innerSamples)
+  };
+}
+
+function solveReplacementPlan(){
+  const candidates=recognitionState.candidates.filter(x=>x.enabled&&x.valid).map((x,index)=>normalizeItemRecord({
+    uid:x.id,no:`C${index+1}`,typeId:x.id,typeName:x.name,name:x.name,cells:cloneCells(x.cells),quality:x.quality,
+    value:qualityValue(x.quality,x.cells.length),bonusRate:defaultBonusRate(x.cells.length,x.quality,x.cells.length===3&&x.quality==='red'),threeSelfBonus:x.cells.length===3&&x.quality==='red'
+  },true));
+  if(!candidates.length){alert('请先确认至少一件合法候选法宝。');return;}
+  if(!inventory.length){alert('请先把识别到的背包物品导入已有物品清单。');return;}
+  const candidateSets=[];
+  for(let mask=1;mask<(1<<candidates.length);mask++){
+    const added=candidates.filter((_,i)=>(mask&(1<<i))!==0);
+    candidateSets.push({added,addedArea:added.reduce((s,x)=>s+x.cells.length,0)});
+  }
+  candidateSets.sort((a,b)=>b.addedArea-a.addedArea||b.added.length-a.added.length);
+  let best=null;
+  for(const set of candidateSets){
+    if(best&&(set.addedArea<best.addedArea||(set.addedArea===best.addedArea&&set.added.length<best.added.length))) break;
+    const largest=Math.max(...set.added.map(x=>x.cells.length));
+    const removable=inventory.filter(x=>x.cells.length<largest);
+    const required=Math.max(0,inventory.reduce((s,x)=>s+x.cells.length,0)+set.addedArea-countActiveCells());
+    for(let count=0;count<=removable.length;count++){
+      if(best&&set.addedArea===best.addedArea&&set.added.length===best.added.length&&count>best.removed.length) break;
+      const subsets=combinationsOfSize(removable,count).filter(list=>list.reduce((s,x)=>s+x.cells.length,0)>=required);
+      for(const removed of subsets){
+        const removedIds=new Set(removed.map(x=>x.uid));
+        const kept=inventory.filter(x=>!removedIds.has(x.uid));
+        const packed=packReplacementItems(kept.concat(set.added));
+        if(!packed) continue;
+        const plan={added:set.added,removed,kept,placements:packed,addedArea:set.addedArea,removedArea:removed.reduce((s,x)=>s+x.cells.length,0),finalValue:kept.concat(set.added).reduce((s,x)=>s+Math.max(0,Number(x.value)||0),0)};
+        if(!best||compareReplacementPlans(plan,best)>0) best=plan;
+      }
+    }
+  }
+  replacementResult=best;
+  if(!best){
+    document.getElementById('replacementResult').textContent='没有找到符合“大件换小件”限制的可行方案。可取消部分候选，或检查候选形状是否识别正确。';
+    document.getElementById('replacementApplyBtn').disabled=true;
+    return;
+  }
+  renderReplacementResult();
+}
+
+function countActiveCells(){
+  let count=0; for(let r=0;r<H;r++) for(let c=0;c<W;c++) if(active[r][c]) count++; return count;
+}
+
+function combinationsOfSize(items,size){
+  const out=[];
+  function visit(start,picked){
+    if(picked.length===size){out.push(picked.slice());return;}
+    for(let i=start;i<=items.length-(size-picked.length);i++){picked.push(items[i]);visit(i+1,picked);picked.pop();}
+  }
+  visit(0,[]); return out;
+}
+
+function compareReplacementPlans(a,b){
+  return (a.addedArea-b.addedArea)||(a.added.length-b.added.length)||(b.removed.length-a.removed.length)||(b.removedArea-a.removedArea)||(a.finalValue-b.finalValue);
+}
+
+function buildReplacementPlacements(item){
+  const placements=[]; const seen=new Set();
+  orientations(item.cells,true,false).forEach(shape=>{
+    const maxR=Math.max(...shape.map(x=>x[0])),maxC=Math.max(...shape.map(x=>x[1]));
+    for(let r0=0;r0<=H-maxR-1;r0++) for(let c0=0;c0<=W-maxC-1;c0++){
+      let mask=0n,valid=true; const cells=[];
+      shape.forEach(([r,c])=>{const rr=r+r0,cc=c+c0;if(!active[rr]?.[cc]){valid=false;return;}mask|=bitOf(rr,cc);cells.push([rr,cc]);});
+      const key=mask.toString(); if(valid&&!seen.has(key)){seen.add(key);placements.push({mask,cells,item});}
+    }
+  });
+  return placements;
+}
+
+function packReplacementItems(items){
+  const entries=items.map(item=>({item,placements:buildReplacementPlacements(item)}));
+  if(entries.some(entry=>!entry.placements.length)) return null;
+  const memo=new Set();
+  function search(remaining,occupied,result){
+    if(!remaining.length) return result;
+    const key=`${remaining.map(x=>x.item.uid).sort().join(',')}|${occupied}`;
+    if(memo.has(key)) return null; memo.add(key);
+    let chosenIndex=0,available=null;
+    for(let i=0;i<remaining.length;i++){
+      const current=remaining[i].placements.filter(p=>(p.mask&occupied)===0n);
+      if(!current.length) return null;
+      if(!available||current.length<available.length){available=current;chosenIndex=i;if(current.length===1)break;}
+    }
+    const next=remaining.slice(); next.splice(chosenIndex,1);
+    for(const placement of available){const solved=search(next,occupied|placement.mask,result.concat(placement));if(solved)return solved;}
+    return null;
+  }
+  return search(entries,0n,[]);
+}
+
+function applyReplacementPlan(){
+  if(!replacementResult) return;
+  inventory=replacementResult.kept.concat(replacementResult.added).map((item,index)=>normalizeItemRecord({...item,uid:item.uid||`replacement-${Date.now()}-${index}`,no:index+1,cells:cloneCells(item.cells)},true));
+  nextItemNo=inventory.length+1; lastResult=null; replacementResult=null;
+  renderInventoryTable(); renderResultGrid(null); renderRecognitionPanel();
+  setRecognitionStatus('已应用大件替换方案。已有物品清单已更新，可继续搜索最终摆放。');
+}
+
+function importRecognitionGroups(){
+  if(!recognitionState.groups.length){
+    alert('当前没有可导入的识别结果。');
+    return;
+  }
+  if(inventory.length && !confirm('导入识别结果会先清空当前已有物品清单，是否继续？')) return;
+  inventory = convertGroupsToInventory(recognitionState.groups);
+  nextItemNo = inventory.length + 1;
+  lastResult = null;
+  renderInventoryTable();
+  renderResultGrid(null);
+  setRecognitionStatus(`已导入 ${inventory.length} 件识别物品到已有物品清单。你现在可以先复核品质和名称，再手动点击“搜索更优摆放解”。`);
+}
+
+function convertGroupsToInventory(groups){
+  return groups.map((group, idx)=>{
+    const threeSelfBonus = group.area === 3 && group.quality === 'red';
+    return normalizeItemRecord({
+      uid:`recognized-${Date.now()}-${idx}`,
+      no:idx + 1,
+      typeId:`recognized-${idx}`,
+      typeName:`识别${qualityName(group.quality)}${group.area}格`,
+      name:`识别-${qualityName(group.quality)}-${group.area}格-${idx+1}`,
+      cells:cloneCells(group.cells),
+      quality:group.quality,
+      value:qualityValue(group.quality, group.area),
+      bonusRate:defaultBonusRate(group.area, group.quality, threeSelfBonus),
+      threeSelfBonus,
+      customPriority:null
+    }, true);
+  });
+}
+
+function applyRecognitionBoundsFromInputs(){
+  if(!recognitionState.bounds) return;
+  const rect = clampRecognitionRect({
+    x:Number(document.getElementById('recognitionBoundX').value) || 0,
+    y:Number(document.getElementById('recognitionBoundY').value) || 0,
+    w:Number(document.getElementById('recognitionBoundW').value) || 1,
+    h:Number(document.getElementById('recognitionBoundH').value) || 1
+  });
+  recognitionState.bounds = rect;
+  renderRecognitionOverlay();
+  setRecognitionStatus('边框已更新，点击“开始识别”以重新计算格子识别结果。');
+}
+
+function startSemiAutoRecognition(){
+  if(!recognitionState.cells.length) return;
+  recognitionState.manualMode=false;
+  document.getElementById('recognitionManualMode').checked=false;
+  document.getElementById('recognitionCanvas').classList.remove('manual');
+  recognitionState.edgeOverrides.clear();
+  recognitionState.semiAuto={active:true,assignedMask:0n,groups:[],candidates:[],pivot:null};
+  recognitionState.groups=[];
+  replacementResult=null;
+  setRecognitionStatus('半自动标注已开始。点击任意尚未确认的物品格，然后选择正确形状。');
+  renderRecognitionPanel();
+}
+
+function buildSemiAutoCandidates(row,col){
+  const state=recognitionState.semiAuto;
+  const occupiedMap=new Map(recognitionState.cells.filter(c=>c.occupied).map(c=>[recognitionCellKey(c.row,c.col),c]));
+  const adjacencyMap=buildRecognitionAdjacencyMap(occupiedMap);
+  const candidates=[];const seen=new Set();
+  RECOGNITION_SHAPE_LIBRARY.forEach(shape=>{
+    for(let anchorIndex=0;anchorIndex<shape.cells.length;anchorIndex++){
+      const [anchorR,anchorC]=shape.cells[anchorIndex];const startR=row-anchorR,startC=col-anchorC;
+      const absoluteCells=shape.cells.map(([r,c])=>[r+startR,c+startC]);
+      if(absoluteCells.some(([r,c])=>r<0||r>=RECOGNITION_GRID_ROWS||c<0||c>=RECOGNITION_GRID_COLS||!occupiedMap.has(recognitionCellKey(r,c))||(state.assignedMask&recognitionCellBit(r,c))!==0n)) continue;
+      let mask=0n;absoluteCells.forEach(([r,c])=>mask|=recognitionCellBit(r,c));const key=mask.toString();if(seen.has(key))continue;seen.add(key);
+      const placementCells=absoluteCells.map(([r,c])=>occupiedMap.get(recognitionCellKey(r,c)));
+      const scored=scoreRecognitionPlacement(placementCells,absoluteCells,occupiedMap,adjacencyMap);
+      candidates.push({mask,area:absoluteCells.length,cells:normalizeCells(absoluteCells),absoluteCells:absoluteCells.sort((a,b)=>a[0]-b[0]||a[1]-b[1]),bbox:buildRecognitionBBox(absoluteCells),quality:scored.quality,confidence:scored.confidence,score:scored.score});
+    }
+  });
+  return candidates.sort((a,b)=>b.score-a.score||b.area-a.area).slice(0,10);
+}
+
+function chooseSemiAutoCell(point){
+  const bounds=recognitionState.bounds,state=recognitionState.semiAuto;
+  if(!bounds||!state.active||point.x<bounds.x||point.x>bounds.x+bounds.w||point.y<bounds.y||point.y>bounds.y+bounds.h)return false;
+  const col=clamp(Math.floor((point.x-bounds.x)/(bounds.w/RECOGNITION_GRID_COLS)),0,RECOGNITION_GRID_COLS-1);
+  const row=clamp(Math.floor((point.y-bounds.y)/(bounds.h/RECOGNITION_GRID_ROWS)),0,RECOGNITION_GRID_ROWS-1);
+  if((state.assignedMask&recognitionCellBit(row,col))!==0n){setRecognitionStatus('这个格子已经属于已确认物品，请点击尚未确认的格子。');return true;}
+  state.pivot=[row,col];state.candidates=buildSemiAutoCandidates(row,col);
+  if(!state.candidates.length){setRecognitionStatus('该格没有可用合法形状，请撤销上一件或检查识别边框。');}
+  else{setRecognitionStatus(`已为第 ${row+1} 行、第 ${col+1} 列生成 ${state.candidates.length} 个合法形状，请选择正确轮廓。`);}
+  renderRecognitionPanel();return true;
+}
+
+function acceptSemiAutoCandidate(index){
+  const state=recognitionState.semiAuto,candidate=state.candidates[index];if(!candidate)return;
+  const group={quality:candidate.quality,area:candidate.area,cells:cloneCells(candidate.cells),absoluteCells:cloneCells(candidate.absoluteCells),bbox:{...candidate.bbox},confidence:1,lowConfidence:false,manual:true};
+  state.groups.push(group);state.assignedMask|=candidate.mask;state.candidates=[];state.pivot=null;
+  recognitionState.groups=state.groups.slice();
+  const assigned=state.groups.reduce((sum,g)=>sum+g.area,0),target=recognitionState.cells.filter(cell=>cell.occupied).length;
+  setRecognitionStatus(assigned===target?`半自动标注完成：${state.groups.length} 件、${target} 格。请复核品质后导入。`:`已确认 ${state.groups.length} 件、${assigned}/${target} 格，请点击下一件物品。`);
+  renderRecognitionPanel();
+}
+
+function undoSemiAutoRecognition(){
+  const state=recognitionState.semiAuto;if(!state.active||!state.groups.length)return;
+  state.groups.pop();state.assignedMask=0n;state.groups.forEach(group=>group.absoluteCells.forEach(([r,c])=>state.assignedMask|=recognitionCellBit(r,c)));
+  state.candidates=[];state.pivot=null;recognitionState.groups=state.groups.slice();setRecognitionStatus('已撤销上一件，请重新选择。');renderRecognitionPanel();
+}
+
+function clampRecognitionRect(rect){
+  const minWidth = Math.max(140, recognitionState.width * 0.45);
+  const minHeight = minWidth * RECOGNITION_GRID_ROWS / RECOGNITION_GRID_COLS;
+  const maxWidth = recognitionState.width - 4;
+  const width = Math.max(Math.min(rect.w, maxWidth), minWidth);
+  const height = Math.max(Math.min(rect.h, recognitionState.height - 4), minHeight);
+  const x = clamp(rect.x, 2, recognitionState.width - width - 2);
+  const y = clamp(rect.y, 2, recognitionState.height - height - 2);
+  return {x, y, w:width, h:height};
+}
+
+function onRecognitionPointerDown(event){
+  if(!recognitionState.bounds) return;
+  const point = getRecognitionCanvasPoint(event);
+  if(recognitionState.semiAuto.active){chooseSemiAutoCell(point);return;}
+  if(!recognitionState.manualMode){
+    const edge=findRecognitionEdgeAt(point,recognitionState.bounds);
+    if(!edge) return;
+    const key=recognitionEdgeKey(edge.rowA,edge.colA,edge.rowB,edge.colB);
+    const current=recognitionState.edgeOverrides.get(key);
+    recognitionState.edgeOverrides.set(key,current===undefined?edge.defaultSame:!current);
+    regroupRecognitionWithOverrides();
+    return;
+  }
+  const handle = getRecognitionDragHandle(point, recognitionState.bounds);
+  if(!handle) return;
+  recognitionState.dragging = {handle, start:point, bounds:{...recognitionState.bounds}};
+  event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function findRecognitionEdgeAt(point,bounds){
+  if(point.x<bounds.x||point.x>bounds.x+bounds.w||point.y<bounds.y||point.y>bounds.y+bounds.h) return null;
+  const cellW=bounds.w/RECOGNITION_GRID_COLS,cellH=bounds.h/RECOGNITION_GRID_ROWS;
+  const gx=(point.x-bounds.x)/cellW,gy=(point.y-bounds.y)/cellH;
+  const colLine=Math.round(gx),rowLine=Math.round(gy);
+  const dx=Math.abs(gx-colLine)*cellW,dy=Math.abs(gy-rowLine)*cellH;
+  let edge=null;
+  if(dx<=10&&colLine>0&&colLine<RECOGNITION_GRID_COLS){const row=clamp(Math.floor(gy),0,RECOGNITION_GRID_ROWS-1);edge={rowA:row,colA:colLine-1,rowB:row,colB:colLine};}
+  if(dy<=10&&rowLine>0&&rowLine<RECOGNITION_GRID_ROWS&&(!edge||dy<dx)){const col=clamp(Math.floor(gx),0,RECOGNITION_GRID_COLS-1);edge={rowA:rowLine-1,colA:col,rowB:rowLine,colB:col};}
+  if(!edge) return null;
+  const a=recognitionState.cells.find(c=>c.row===edge.rowA&&c.col===edge.colA),b=recognitionState.cells.find(c=>c.row===edge.rowB&&c.col===edge.colB);
+  if(!a?.occupied||!b?.occupied) return null;
+  edge.defaultSame=measureRecognitionAdjacency(a,b).score<0.5;
+  return edge;
+}
+
+function regroupRecognitionWithOverrides(){
+  recognitionState.groups=groupCellsToItems(recognitionState.cells);
+  replacementResult=null;
+  setRecognitionStatus(`已应用 ${recognitionState.edgeOverrides.size} 条人工边界修正，并按合法形状重新分组。`);
+  renderRecognitionPanel();
+}
+
+function onRecognitionPointerMove(event){
+  if(!recognitionState.dragging || !recognitionState.bounds) return;
+  const point = getRecognitionCanvasPoint(event);
+  const dx = point.x - recognitionState.dragging.start.x;
+  const dy = point.y - recognitionState.dragging.start.y;
+  const base = recognitionState.dragging.bounds;
+  const next = {...base};
+  const handle = recognitionState.dragging.handle;
+  if(handle === 'move'){
+    next.x = base.x + dx;
+    next.y = base.y + dy;
+  }
+  if(handle.includes('w')){
+    next.x = base.x + dx;
+    next.w = base.w - dx;
+  }
+  if(handle.includes('e')){
+    next.w = base.w + dx;
+  }
+  if(handle.includes('n')){
+    next.y = base.y + dy;
+    next.h = base.h - dy;
+  }
+  if(handle.includes('s')){
+    next.h = base.h + dy;
+  }
+  recognitionState.bounds = clampRecognitionRect(next);
+  syncRecognitionBoundsInputs();
+  renderRecognitionOverlay();
+}
+
+function onRecognitionPointerUp(event){
+  if(event.currentTarget?.hasPointerCapture?.(event.pointerId)){
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+  if(!recognitionState.dragging) return;
+  recognitionState.dragging = null;
+  setRecognitionStatus('边框已调整，点击“开始识别”以重新计算格子识别结果。');
+}
+
+function getRecognitionCanvasPoint(event){
+  const rect = event.currentTarget.getBoundingClientRect();
+  return {
+    x:(event.clientX - rect.left) * (event.currentTarget.width / rect.width),
+    y:(event.clientY - rect.top) * (event.currentTarget.height / rect.height)
+  };
+}
+
+function getRecognitionDragHandle(point, bounds){
+  const corners = {
+    nw:[bounds.x, bounds.y],
+    ne:[bounds.x + bounds.w, bounds.y],
+    se:[bounds.x + bounds.w, bounds.y + bounds.h],
+    sw:[bounds.x, bounds.y + bounds.h]
+  };
+  for(const [name, [x,y]] of Object.entries(corners)){
+    if(Math.abs(point.x - x) <= 14 && Math.abs(point.y - y) <= 14) return name;
+  }
+  if(point.x >= bounds.x && point.x <= bounds.x + bounds.w && point.y >= bounds.y && point.y <= bounds.y + bounds.h) return 'move';
+  return null;
+}
+
+function sampleRegionMean(x, y, w, h, stepsX=5, stepsY=5){
+  let total = 0, r = 0, g = 0, b = 0;
+  for(let sy=0;sy<stepsY;sy++){
+    for(let sx=0;sx<stepsX;sx++){
+      const px = x + (stepsX === 1 ? 0.5 : sx / (stepsX - 1)) * w;
+      const py = y + (stepsY === 1 ? 0.5 : sy / (stepsY - 1)) * h;
+      const rgb = samplePixel(px, py);
+      r += rgb[0]; g += rgb[1]; b += rgb[2];
+      total++;
+    }
+  }
+  return [r / total, g / total, b / total];
+}
+
+function samplePixel(x, y){
+  const xx = Math.max(0, Math.min(recognitionState.width - 1, Math.round(x)));
+  const yy = Math.max(0, Math.min(recognitionState.height - 1, Math.round(y)));
+  const idx = (yy * recognitionState.width + xx) * 4;
+  const data = recognitionState.pixelData;
+  return [data[idx], data[idx + 1], data[idx + 2]];
+}
+
+function sampleGray(x, y){
+  return grayOf(samplePixel(x, y));
+}
+
+function nearestRecognitionQuality(rgb){
+  let best = null, second = null;
+  RECOGNITION_QUALITY_ORDER.forEach(quality=>{
+    const distance = colorDistance(rgb, RECOGNITION_QUALITY_PALETTE[quality]);
+    const entry = {quality, distance};
+    if(!best || distance < best.distance){
+      second = best;
+      best = entry;
+    }else if(!second || distance < second.distance){
+      second = entry;
+    }
+  });
+  return {
+    quality:best.quality,
+    distance:best.distance,
+    margin:(second?.distance || best.distance) - best.distance
+  };
+}
+
+function classifyRecognitionQualitySample(rgb){
+  const [h, s, v] = rgbToHsv(rgb);
+  let quality = 'red';
+  let confidence = 0.3;
+  if((h >= 245 && h <= 320) || (h >= 330 && s < 0.35 && v > 0.45)){
+    quality = 'purple';
+    confidence = 0.8;
+  }else if(h >= 180 && h <= 240){
+    quality = 'blue';
+    confidence = 0.85;
+  }else if(h >= 70 && h <= 170){
+    quality = 'green';
+    confidence = 0.8;
+  }else if(h >= 18 && h <= 55){
+    quality = v > 0.58 || (s < 0.25 && v > 0.52) ? 'gold' : 'red';
+    confidence = quality === 'gold' ? 0.72 : 0.55;
+  }else if(h >= 0 && h <= 17){
+    quality = v > 0.62 && s < 0.2 ? 'gold' : 'red';
+    confidence = quality === 'gold' ? 0.58 : 0.68;
+  }
+  const distance = colorDistance(rgb, RECOGNITION_QUALITY_PALETTE[quality]);
+  const weight = Math.max(1, 180 - distance) * confidence;
+  return {quality, confidence, distance, weight};
+}
+
+function rgbToHsv(rgb){
+  const r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const delta = max - min;
+  let h = 0;
+  if(delta !== 0){
+    if(max === r) h = 60 * (((g - b) / delta) % 6);
+    else if(max === g) h = 60 * (((b - r) / delta) + 2);
+    else h = 60 * (((r - g) / delta) + 4);
+  }
+  if(h < 0) h += 360;
+  const s = max === 0 ? 0 : delta / max;
+  return [h, s, max];
+}
+
+function colorDistance(a, b){
+  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+}
+
+function grayOf(rgb){
+  return rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114;
+}
+
+function meanRgb(samples){
+  if(!samples.length) return [0,0,0];
+  const total = samples.reduce((sum, rgb)=>[
+    sum[0] + rgb[0],
+    sum[1] + rgb[1],
+    sum[2] + rgb[2]
+  ], [0,0,0]);
+  return total.map(value=>value / samples.length);
+}
+
+function medianOf(values){
+  if(!values.length) return 0;
+  const sorted = [...values].sort((a,b)=>a-b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function topAverage(values, count=1){
+  if(!values.length) return 0;
+  const sorted = [...values].sort((a,b)=>b-a);
+  const used = sorted.slice(0, Math.max(1, count));
+  return used.reduce((sum, value)=>sum + value, 0) / used.length;
+}
+
+function clamp(value, min, max){
+  return Math.max(min, Math.min(max, value));
+}
+
 function addCustomItem(){
   const name = document.getElementById('customName').value.trim() || `自定义-${itemDefs.length+1}`;
   const pattern = document.getElementById('customPattern').value;
@@ -741,6 +2734,25 @@ function orientations(cells, allowRot, allowMir){
     }
   }
   return [...out.values()];
+}
+
+const RECOGNITION_SHAPE_LIBRARY = buildRecognitionShapeLibrary();
+
+function buildRecognitionShapeLibrary(){
+  const unique = new Map();
+  DEFAULT_ITEMS.forEach(item=>{
+    orientations(item.cells, true, true).forEach(shape=>{
+      const key = cellsKey(shape);
+      if(unique.has(key)) return;
+      unique.set(key, {
+        cells:cloneCells(shape),
+        area:shape.length,
+        width:Math.max(...shape.map(cell=>cell[1])) + 1,
+        height:Math.max(...shape.map(cell=>cell[0])) + 1
+      });
+    });
+  });
+  return [...unique.values()].sort((a,b)=>a.area-b.area || a.height-b.height || a.width-b.width);
 }
 
 function buildActiveMask(){
@@ -894,7 +2906,7 @@ function solverWorkerMain(){
     const skippedCount = Math.max(0, Number(data.skippedCount)||0);
     const started = performance.now();
     const hardDeadline = started + timeLimit;
-    let rngState = (0x9e3779b9 ^ itemsHashSeed(data.items || []) ^ activeCells ^ nodeLimit) >>> 0;
+    let rngState = (0x9e3779b9 ^ itemsHashSeed(data.items || []) ^ activeCells ^ nodeLimit ^ (Number(data.seedOffset)||0)) >>> 0;
     function itemsHashSeed(rawItems){
       let h=2166136261>>>0;
       for(const t of rawItems){
@@ -912,6 +2924,7 @@ function solverWorkerMain(){
     let nodes = 0;
     let assignmentChecks = 0;
     let lastProgress = started;
+    let lastIncumbentReport = started-250;
     let currentStage = '准备搜索';
 
     function bit(r,c){ return 1n << BigInt(r*W+c); }
@@ -1068,17 +3081,12 @@ function solverWorkerMain(){
     }
     const fullGroups = buildGroups(geometryGroupKey,'geometry');
     const partialGroups = buildGroups(detailedGroupKey,'detailed');
-    // 开启百分比加成时保持原算法：多格物品先布局，单格物品延后按真实加成分配。
-    // 关闭百分比加成时，单格物品直接参与几何搜索，以优化重点邻接和总邻接数量。
-    const singletonItems = useBonus
-      ? items.filter(t=>t.area===1)
-      : [];
-
+    // 完整装入搜索时，单格物品不再逐件参与几何回溯。
+    // 先搜索多格物品布局，再把单格物品按真实加成价值分配到剩余格子，可显著减少组合数。
+    const singletonItems = items.filter(t=>t.area===1);
     const singletonCount = singletonItems.length;
-
-    const fullCoreGroups = useBonus
-      ? fullGroups.filter(g=>g.area>1)
-      : fullGroups;
+    const singletonCompletionCache = new Map();
+    const fullCoreGroups = fullGroups.filter(g=>g.area>1);
     const fullCoreItemCount = fullCoreGroups.reduce((sum,g)=>sum+g.items.length,0);
     const fullCoreArea = fullCoreGroups.reduce((sum,g)=>sum+g.items.length*g.area,0);
     const itemPlacementLookup = items.map(t=>new Map(t.placements.map(p=>[p.mask.toString(),p])));
@@ -1124,7 +3132,15 @@ function solverWorkerMain(){
       return 0;
     }
     function betterThanBest(candidate){ return compareEvaluationObjects(candidate,best)>0; }
-    function accept(candidate){ if(betterThanBest(candidate)) best = candidate; }
+    function accept(candidate){
+      if(!betterThanBest(candidate)) return;
+      best = candidate;
+      const now=performance.now();
+      if(now-lastIncumbentReport>=250){
+        lastIncumbentReport=now;
+        self.postMessage({type:'incumbent',stage:currentStage,best:serializeBest(),nodes,elapsed:Math.round(now-started),fullPackingFound:best.complete,totalArea,totalItems});
+      }
+    }
     function evaluateConcrete(placements){
       let baseScore=0, area=0, occupied=0n, adjacencyCount=0;
       const manualVector=emptyManualVector(), defaultVector=emptyDefaultVector();
@@ -1385,6 +3401,8 @@ function solverWorkerMain(){
       return currentEval;
     }
     function completeGeometryWithSingletons(multiGeometryPlacements,intensive=false){
+      const cacheKey=!intensive ? multiGeometryPlacements.map(p=>`${p.geometryGroupIndex}:${p.mask.toString(36)}`).sort().join('|') : '';
+      if(cacheKey && singletonCompletionCache.has(cacheKey)) return singletonCompletionCache.get(cacheKey);
       let occupied=0n;
       for(const p of multiGeometryPlacements) occupied|=p.mask;
       const multiSeeds=[];
@@ -1412,6 +3430,10 @@ function solverWorkerMain(){
       if(!bestLocal) return evaluateConcrete([]);
       const closeToBest = best.totalScore<0 || bestLocal.complete!==best.complete || bestLocal.totalScore>=best.totalScore-Math.max(1,Math.abs(best.totalScore)*0.015);
       if(useBonus && (intensive || closeToBest)) bestLocal=improveConcreteAssignments(bestLocal.placements,intensive?28:8);
+      if(cacheKey){
+        if(singletonCompletionCache.size>=2000) singletonCompletionCache.delete(singletonCompletionCache.keys().next().value);
+        singletonCompletionCache.set(cacheKey,bestLocal);
+      }
       return bestLocal;
     }
     function evaluateComplete(placements){
@@ -1919,10 +3941,12 @@ function setSolverRunning(running){
 
 function cleanupSolverWorker(){
   stopSolverStatusHeartbeat();
-  if(!solverWorker) return;
-  const url = solverWorker._blobUrl;
-  solverWorker.terminate();
-  if(url) URL.revokeObjectURL(url);
+  for(const worker of solverWorkers){
+    const url=worker._blobUrl;
+    worker.terminate();
+    if(url) URL.revokeObjectURL(url);
+  }
+  solverWorkers=[];
   solverWorker = null;
   setSolverRunning(false);
 }
@@ -1933,6 +3957,25 @@ function cancelSolve(){
   document.getElementById('statusBox').textContent = '计算已由用户停止。可以降低搜索节点/时间上限后重新计算，也可以直接再次计算。';
 }
 
+function compareSolverBest(a,b){
+  if(!a) return -1;
+  if(!b) return 1;
+  if(!!a.complete!==!!b.complete) return a.complete?1:-1;
+  const numbers=['totalScore'];
+  for(const key of numbers) if(Math.abs((Number(a[key])||0)-(Number(b[key])||0))>1e-9) return Number(a[key])>Number(b[key])?1:-1;
+  const compareVector=(x=[],y=[])=>{
+    const n=Math.max(x.length,y.length);
+    for(let i=0;i<n;i++) if((x[i]||0)!==(y[i]||0)) return (x[i]||0)>(y[i]||0)?1:-1;
+    return 0;
+  };
+  let c=compareVector(a.manualPriorityVector,b.manualPriorityVector); if(c) return c;
+  c=compareVector(a.defaultPriorityVector,b.defaultPriorityVector); if(c) return c;
+  for(const key of ['adjacencyCount','itemCount','area','baseScore','bonusScore']){
+    if(Math.abs((Number(a[key])||0)-(Number(b[key])||0))>1e-9) return Number(a[key])>Number(b[key])?1:-1;
+  }
+  return 0;
+}
+
 function solveAndRender(){
   if(solverWorker) return;
   const prepared = prepareInventoryItems();
@@ -1941,20 +3984,26 @@ function solveAndRender(){
   if(activeCells===0){ alert('请至少选择一个已解锁空间格。'); return; }
   if(inventory.length===0){ alert('请先从物品库添加已有物品。'); return; }
   if(items.length===0){ alert('已有物品都无法放入当前空间。请调整空间、旋转/镜像设置或物品清单。'); return; }
-  const nodeLimit = Math.max(1000, Number(document.getElementById('nodeLimit').value)||2500000);
-  const timeLimit = Math.max(100, Number(document.getElementById('timeLimit').value)||20000);
+  const searchMode=document.getElementById('searchMode').value;
+  const requestedNodeLimit = Math.max(1000, Number(document.getElementById('nodeLimit').value)||2500000);
+  const requestedTimeLimit = Math.max(100, Number(document.getElementById('timeLimit').value)||20000);
+  const nodeLimit=searchMode==='fast'?Math.min(requestedNodeLimit,350000):requestedNodeLimit;
+  const timeLimit=searchMode==='fast'?Math.min(requestedTimeLimit,3000):requestedTimeLimit;
   const useBonus = document.getElementById('useAdjacencyBonus').checked;
+  const parallel=document.getElementById('parallelSearch').checked;
+  const workerCount=parallel?Math.max(2,Math.min(4,Number(document.getElementById('workerCount').value)||2)):1;
 
   const serialItems = items.map(t=>({
     ...t,
     placements:t.placements.map(p=>({...p, mask:p.mask.toString()}))
   }));
-  solverWorker = createSolverWorker();
+  solverWorkers=Array.from({length:workerCount},()=>createSolverWorker());
+  solverWorker=solverWorkers[0];
   setSolverRunning(true);
   startSolverStatusHeartbeat(activeCells, inventory.length);
   const totalSearchArea = inventory.reduce((sum,x)=>sum+(x.cells?.length||0),0);
   const totalSearchBase = inventory.reduce((sum,x)=>sum+Math.max(0,Number(x.value)||0),0);
-  document.getElementById('statusBox').textContent = `正在后台搜索…
+  document.getElementById('statusBox').textContent = `正在后台搜索（${searchMode==='fast'?'快速':'深度'}档，${workerCount} 个 Worker）…
 物品总占格：${totalSearchArea}，可用空间：${activeCells}
 ${skipped.length>0?'存在单件无法合法放置的物品，将直接搜索最佳可行子集。':(totalSearchArea<=activeCells?'先寻找全部物品的完整摆法，再按实际总属性与邻接顺序优化。':'物品总面积超过空间，将按实际总属性与邻接顺序搜索最佳可行子集。')}
 节点上限：${nodeLimit.toLocaleString('zh-CN')}
@@ -1965,18 +4014,40 @@ ${skipped.length>0?'存在单件无法合法放置的物品，将直接搜索最
 状态区会每 500 ms 更新计时；求解器阶段、节点和最好评分在收到新进度时同步更新。
 页面仍可正常操作；需要中止时点击“停止计算”。`;
 
-  solverWorker.onmessage = function(ev){
+  let completedWorkers=0, totalNodes=0, globalBest=null, winningMessage=null;
+  const wallStarted=performance.now();
+  const finishWorker=function(worker,msg){
+    completedWorkers++;
+    totalNodes+=Number(msg.nodes)||0;
+    const comparison=compareSolverBest(msg.best,globalBest);
+    if(comparison>0) globalBest=msg.best;
+    if(comparison>=0 || !winningMessage) winningMessage=msg;
+    const url=worker._blobUrl; worker.terminate(); if(url) URL.revokeObjectURL(url);
+    if(completedWorkers<workerCount) return;
+    const best=globalBest, meta=winningMessage;
+    lastResult = {
+      best, nodes:totalNodes, elapsed:Math.round(performance.now()-wallStarted), stopped:meta.stopped, width:W, height:H, active:active.map(r=>r.slice()),
+      inventory:inventory.map(x=>({...x,cells:cloneCells(x.cells)})),
+      settings:{allowRotate:document.getElementById('allowRotate').checked,allowMirror:document.getElementById('allowMirror').checked,useAdjacencyBonus:useBonus,searchMode,parallelSearch:parallel,workerCount,optimizationOrder:['complete_loading','actual_total_score','manual_priority_neighbors','default_priority_neighbors','total_adjacency_count'],priorityTiers:SELF_PRIORITY_TIERS,manualPriorityRule:'1 is highest; blank uses default rules',assignmentStrategy:'geometry_then_item_assignment'},
+      skipped:skipped.map(x=>({no:x.no,name:x.name,area:x.area,value:x.value})),manualItems,
+      solverMeta:{fullPackingAttempted:meta.fullPackingAttempted,fullPackingFound:meta.fullPackingFound,fullSearchCutoff:meta.fullSearchCutoff,optimizationCutoff:meta.optimizationCutoff,fallbackCutoff:meta.fallbackCutoff,totalArea:meta.totalArea,totalBase:meta.totalBase,totalItems:meta.totalItems,fullGroupCount:meta.fullGroupCount,detailedGroupCount:meta.detailedGroupCount,assignmentStrategy:meta.assignmentStrategy,singletonDeferredCount:meta.singletonDeferredCount,assignmentChecks:meta.assignmentChecks,workerCount}
+    };
+    solverWorkers=[]; solverWorker=null; stopSolverStatusHeartbeat(); setSolverRunning(false);
+    renderResultGrid(best);
+    renderStats(best,totalNodes,lastResult.elapsed,meta.stopped,activeCells,skipped,lastResult.solverMeta);
+  };
+  solverWorkers.forEach((worker,workerIndex)=>{ worker.onmessage = function(ev){
     const msg = ev.data;
     if(msg.type === 'progress'){
-      updateSolverStatusFromMessage(msg,activeCells);
+      updateSolverStatusFromMessage({...msg,nodes:totalNodes+(Number(msg.nodes)||0),stage:`Worker ${workerIndex+1}/${workerCount}：${msg.stage||'搜索中'}`},activeCells);
       return;
     }
     if(msg.type === 'incumbent'){
-      renderResultGrid(msg.best);
+      if(compareSolverBest(msg.best,globalBest)>0){ globalBest=msg.best; renderResultGrid(msg.best); }
       updateSolverStatusFromMessage({
         ...msg,
-        stage:msg.stage || '已找到完整摆法，继续优化',
-        bestComplete:true,
+        stage:msg.stage || (msg.best.complete?'已找到完整摆法，继续优化':'已找到更优可行方案'),
+        bestComplete:msg.best.complete,
         bestArea:msg.best.area,
         bestBase:msg.best.baseScore,
         bestBonus:msg.best.bonusScore,
@@ -1987,63 +4058,24 @@ ${skipped.length>0?'存在单件无法合法放置的物品，将直接搜索最
       return;
     }
     if(msg.type !== 'done') return;
-    const workerRef = solverWorker;
-    const best = msg.best;
-    lastResult = {
-      best, nodes:msg.nodes, elapsed:msg.elapsed, stopped:msg.stopped, width:W, height:H, active:active.map(r=>r.slice()),
-      inventory:inventory.map(x=>({...x,cells:cloneCells(x.cells)})),
-      settings:{
-        allowRotate:document.getElementById('allowRotate').checked,
-        allowMirror:document.getElementById('allowMirror').checked,
-        useAdjacencyBonus:useBonus,
-        optimizationOrder:['complete_loading','actual_total_score','manual_priority_neighbors','default_priority_neighbors','total_adjacency_count'],
-        priorityTiers:SELF_PRIORITY_TIERS,
-        manualPriorityRule:'1 is highest; blank uses default rules',
-        assignmentStrategy:'geometry_then_item_assignment'
-      },
-      skipped:skipped.map(x=>({no:x.no,name:x.name,area:x.area,value:x.value})),
-      manualItems,
-      solverMeta:{
-        fullPackingAttempted:msg.fullPackingAttempted,
-        fullPackingFound:msg.fullPackingFound,
-        fullSearchCutoff:msg.fullSearchCutoff,
-        optimizationCutoff:msg.optimizationCutoff,
-        fallbackCutoff:msg.fallbackCutoff,
-        totalArea:msg.totalArea,
-        totalBase:msg.totalBase,
-        totalItems:msg.totalItems,
-        fullGroupCount:msg.fullGroupCount,
-        detailedGroupCount:msg.detailedGroupCount,
-        assignmentStrategy:msg.assignmentStrategy,
-        singletonDeferredCount:msg.singletonDeferredCount,
-        assignmentChecks:msg.assignmentChecks
-      }
-    };
-    if(workerRef){
-      const url = workerRef._blobUrl;
-      workerRef.terminate();
-      if(url) URL.revokeObjectURL(url);
-    }
-    solverWorker = null;
-    stopSolverStatusHeartbeat();
-    setSolverRunning(false);
-    renderResultGrid(best);
-    renderStats(best,msg.nodes,msg.elapsed,msg.stopped,activeCells,skipped,lastResult.solverMeta);
+    finishWorker(worker,msg);
   };
-  solverWorker.onerror = function(err){
+  worker.onerror = function(err){
     const message = err && err.message ? err.message : '未知错误';
     cleanupSolverWorker();
     document.getElementById('statusBox').textContent = `计算失败：${message}`;
   };
-  solverWorker.postMessage({
+  worker.postMessage({
     items:serialItems,
     activeMask:activeMask.toString(), activeCells, W, H, nodeLimit, timeLimit, useBonus,
+    seedOffset:Math.imul(workerIndex+1,0x85ebca6b),
     manualCount:manualPriorityLevels.length,
     defaultTierCount:SELF_PRIORITY_TIERS.length,
     requiredTotalItems:inventory.length,
     requiredTotalArea:totalSearchArea,
     requiredTotalBase:totalSearchBase,
     skippedCount:skipped.length
+  });
   });
 }
 
