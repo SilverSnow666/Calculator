@@ -65,7 +65,9 @@
   .table-scroll table{margin-top:0;min-width:0;width:100%;max-width:100%}
   .table-scroll input[type="number"],.table-scroll input[type="text"],.table-scroll select{max-width:100%;min-width:0}
   .table-scroll input[type="number"]{width:82px}
-  .table-scroll thead th{position:sticky;top:0;z-index:4;box-shadow:0 1px 0 #e5e7eb}
+  /* 表头和内容在同一个滚动容器内，滚动时始终保留字段含义。 */
+  .table-scroll thead{position:sticky;top:0;z-index:5;background:#f9fafb;box-shadow:0 1px 0 #cbd5e1}
+  .table-scroll thead th{position:relative;z-index:1;background:#f9fafb}
   .column-options{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:8px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
   .column-options strong{font-size:12px;color:#475569;margin:0 3px 0 1px;white-space:nowrap}
   .column-options label{position:relative;display:inline-flex;align-items:center;margin:0;padding:0;cursor:pointer;user-select:none}
@@ -376,7 +378,7 @@
             <div class="row">
               <label><input id="useAdjacencyBonus" type="checkbox" checked> 启用百分比相邻加成</label>
               <label><input id="parallelSearch" type="checkbox"> 并行搜索</label>
-              <label id="workerCountLabel" hidden>Worker 数量 <input id="workerCount" type="number" min="2" max="4" step="1" value="2"></label>
+              <label id="workerCountLabel" hidden>Worker 数量 <input id="workerCount" type="number" min="2" max="12" step="1" value="2"><span id="workerCountHint" class="hint"></span></label>
             </div>
             <div class="row">
               <button id="solveBtn" class="primary">搜索更优摆放解</button>
@@ -490,6 +492,7 @@ const DEFAULT_ITEMS = [
   {id:'one-1', name:'单格', cells:[[0,0]], quality:'purple', enabled:true},
   {id:'two-v', name:'双格-竖条', cells:[[0,0],[1,0]], quality:'gold', enabled:true},
   {id:'two-h', name:'双格-横条', cells:[[0,0],[0,1]], quality:'gold', enabled:true},
+  {id:'three-one-h', name:'三个-横条', cells:[[0,0],[0,1],[0,2]], quality:'gold', threeSelfBonus:false, enabled:true},
   {id:'three-i', name:'三格-I型', cells:[[0,0],[1,0],[2,0]], quality:'gold', threeSelfBonus:false, enabled:true},
   {id:'three-l-a', name:'三格-L型A', cells:[[0,1],[1,0],[1,1]], quality:'gold', threeSelfBonus:false, enabled:true},
   {id:'three-l-b', name:'三格-L型B', cells:[[0,0],[0,1],[1,0]], quality:'gold', threeSelfBonus:false, enabled:true},
@@ -596,6 +599,7 @@ function normalizeItemRecord(item, keepManualRate=false){
 function init(){
   active = Array.from({length:6},()=>Array(7).fill(true));
   itemDefs = cloneItems(DEFAULT_ITEMS);
+  configureWorkerCountControl();
   bindEvents();
   renderQualitySelect(document.getElementById('customQuality'), 'green', false, 1);
   renderSpaceGrid();
@@ -604,6 +608,20 @@ function init(){
   updateTableColumnLayout();
   renderResultGrid(null);
   renderRecognitionPanel();
+}
+
+function getParallelWorkerLimit(){
+  const cores = Math.floor(Number(navigator.hardwareConcurrency) || 4);
+  // 保留一个逻辑核心给页面交互；低核心设备至少仍可选择 4 个 Worker。
+  return Math.max(4, Math.min(12, cores > 4 ? cores - 1 : cores));
+}
+
+function configureWorkerCountControl(){
+  const input = document.getElementById('workerCount');
+  const limit = getParallelWorkerLimit();
+  input.max = String(limit);
+  input.value = String(Math.max(2, Math.min(limit, Math.floor(Number(input.value) || 2))));
+  document.getElementById('workerCountHint').textContent = `最多 ${limit} 个（按设备能力）`;
 }
 
 function bindEvents(){
@@ -3991,7 +4009,8 @@ function solveAndRender(){
   const timeLimit=searchMode==='fast'?Math.min(requestedTimeLimit,3000):requestedTimeLimit;
   const useBonus = document.getElementById('useAdjacencyBonus').checked;
   const parallel=document.getElementById('parallelSearch').checked;
-  const workerCount=parallel?Math.max(2,Math.min(4,Number(document.getElementById('workerCount').value)||2)):1;
+  const workerLimit=getParallelWorkerLimit();
+  const workerCount=parallel?Math.max(2,Math.min(workerLimit,Math.floor(Number(document.getElementById('workerCount').value)||2))):1;
 
   const serialItems = items.map(t=>({
     ...t,
